@@ -11,6 +11,10 @@
 	let objCanvas = null;
 	let objC2D = null;
 	let objCycleAnimation = null;
+
+	//test
+	objLadder = new Image();
+	objLadder.src = 'ladder.png'
         
     function initAnimation() {
         objCanvas = document.getElementById('monCanvas');
@@ -45,18 +49,45 @@
 	
 	// Pour mettre à jour l'animation
 	function mettreAjourAnimation() {
-	    if (!objVortex.binEnDisparition) {
-            mettreAJourTrajetBalle();
-	        mettreAjourAnimationBalle();
-	        mettreAJourAnimationVortex();
-	    }
-        else
-           mettreAJourDisparitionVortex();
 	}
 
     // Pour dessiner
 	function dessiner() {
+		dessinerBackground();
+		dessinerLadder();
+		//dessinerGrid();
 	}
+
+	
+	function dessinerBackground() {
+		objC2D.save();
+		objC2D.fillStyle = 'black';
+		objC2D.fillRect(0, 0, objCanvas.width, objCanvas.height);
+		objC2D.restore();
+	}
+
+	function dessinerLadder() {
+		objC2D.save();
+		for(let i = 0; i < 28; i++) {
+			for(let j = 0; j < 17; j++) {
+				objC2D.drawImage(objLadder, i * 32, j * 32);
+			}
+		}
+		objC2D.restore();
+	}
+
+	function dessinerGrid() {
+		objC2D.save();
+		for(let i = 0; i < 28; i++) {
+			for(let j = 0; j < 17; j++) {
+				objC2D.lineWidth = 2;
+				objC2D.strokeStyle = 'green';
+				objC2D.strokeRect(i * 32, j * 32, objCanvas.width, objCanvas.height);
+			}
+		}
+		objC2D.restore();
+	}
+
 
 
    </script>
