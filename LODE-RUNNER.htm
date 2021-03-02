@@ -42,6 +42,7 @@
 	function initNiveau() {
 		objC2D.save();
 		//Charger l'image du niveau
+
 		imgNiveau = new Image();
 		imgNiveau.src = 'niveauTest.png';
 		let tableauTemp = new Array();
@@ -53,9 +54,6 @@
 			//Convertir l'image en un tableau de pixels
 			const objPixels = objC2D.getImageData(0, 0, CELL_WIDTH, CELL_HEIGHT);
 
-			//Remplir le tableau du niveau avec les bonnes valeurs
-			//console.log(objPixels.data.length / 4);
-
 			//Lire les pixels
 			let cell_id = 0;
 			for(let p = 0; p < objPixels.data.length; p += 4) {
@@ -64,14 +62,15 @@
 				const GREEN = objPixels.data[p + 1];
 				const BLUE = objPixels.data[p + 2];
 
+				console.log("RGB("+RED+", "+GREEN+", "+BLUE+")");
 				//Si le pixel est Brun(130, 70, 25) alors la case est une échelle
-				if(RED == 130 && GREEN == 70 && BLUE == 25)
+				if((RED >= 125 && RED <= 135) && (GREEN >= 65 && GREEN <= 75) && (BLUE >= 20 && BLUE <= 30))
 					tableauTemp[cell_id] = 0;
 				//Si le pixel est Rouge(255, 0, 0) alors la case est une brique
-				else if(RED == 255 && GREEN == 0 && BLUE == 0)
+				else if(RED >= 254 && GREEN <= 5 && BLUE <= 5)
 					tableauTemp[cell_id]  = 1;
 				//Si le pixel est Jaune(225, 225, 0) alors la case est un coffre
-				else if(RED == 225 && GREEN == 225 && BLUE == 0)
+				else if((RED >= 220 && RED <= 230) && (GREEN >= 220 && GREEN <= 230) && BLUE == 0)
 					tableauTemp[cell_id]  = 2;
 				//Sinon la case est vide
 				else 
@@ -79,8 +78,8 @@
 				cell_id++;
 			}
 
-			//console.log("Tableau remplis");
-			//console.log("Size: "+tableauTemp.length);
+			console.log("Tableau remplis");
+			console.log("Size: "+tableauTemp.length);
 
 			//Séparer le tableau en un tableau a 2 dimensions
 			let ligne = 0;
@@ -88,10 +87,11 @@
 				tabNiveau[ligne] = tableauTemp.splice(0, 28);
 				ligne++;
 			}
-			//console.log("Tableau Séparer");
-			//console.log("Ancien Tableau: "+tableauTemp.length);
-			//console.log("Nouveau Tableau: "+tabNiveau.length);
-
+			console.log("Tableau Séparer");
+			console.log("Ancien Tableau: "+tableauTemp.length);
+			console.log("Nouveau Tableau: "+tabNiveau.length);
+			console.log(tabNiveau[1][2]);
+			effacerDessin();
 		}
 	}
         
