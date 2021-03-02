@@ -7,22 +7,122 @@
   <title>Lode Runner par Charles Morin et Andrew Aboujaoudé</title>
   <link rel="stylesheet" type="text/css" href="" />
   <!-- Code JavaScript local -->
-  <script type="text/javascript"> 
+  <script type="text/javascript">
 	let objCanvas = null;
 	let objC2D = null;
 	let objCycleAnimation = null;
 
-	//test
-	objLadder = new Image();
-	objLadder.src = 'ladder.png'
+	//
+	const CELL_HEIGHT = 17;
+	const CELL_WIDTH = 28;
+
+	//Images 
+	let imgEchelle = null;
+	let imgBrique = null;
+	let imgCoffre = null;
+
+	let objLodeRunner = null;
+
+	let imgNiveau = null;
+
+	//Niveau
+	let tabNiveau = new Array();
+
+	/**
+	 * Initialiser le niveau
+	 * MAP CONVERT rgb
+	 *BRICK = RED(255, 0, 0)
+	 *COFFRE = JAUNE(220, 225, 0)
+     *ECHELLE = BRUN(130, 70, 25)
+	 * -1 = vide
+	 * 0  = échelle
+	 * 1 = brique
+	 * 2 = coffre
+	 */
+	function initNiveau() {
+		objC2D.save();
+		//Charger l'image du niveau
+		imgNiveau = new Image();
+		imgNiveau.src = 'niveauTest.png';
+		let tableauTemp = new Array();
+
+		imgNiveau.onload = function() {
+			//Dessiner l'image sur le canvas
+			objC2D.drawImage(imgNiveau, 0, 0);
+
+			//Convertir l'image en un tableau de pixels
+			const objPixels = objC2D.getImageData(0, 0, CELL_WIDTH, CELL_HEIGHT);
+
+			//Remplir le tableau du niveau avec les bonnes valeurs
+			//console.log(objPixels.data.length / 4);
+
+			//Lire les pixels
+			let cell_id = 0;
+			for(let p = 0; p < objPixels.data.length; p += 4) {
+						
+				const RED = objPixels.data[p];
+				const GREEN = objPixels.data[p + 1];
+				const BLUE = objPixels.data[p + 2];
+
+				//Si le pixel est Brun(130, 70, 25) alors la case est une échelle
+				if(RED == 130 && GREEN == 70 && BLUE == 25)
+					tableauTemp[cell_id] = 0;
+				//Si le pixel est Rouge(255, 0, 0) alors la case est une brique
+				else if(RED == 255 && GREEN == 0 && BLUE == 0)
+					tableauTemp[cell_id]  = 1;
+				//Si le pixel est Jaune(225, 225, 0) alors la case est un coffre
+				else if(RED == 225 && GREEN == 225 && BLUE == 0)
+					tableauTemp[cell_id]  = 2;
+				//Sinon la case est vide
+				else 
+					tableauTemp[cell_id]  = -1;
+				cell_id++;
+			}
+
+			//console.log("Tableau remplis");
+			//console.log("Size: "+tableauTemp.length);
+
+			//Séparer le tableau en un tableau a 2 dimensions
+			let ligne = 0;
+			while(tableauTemp.length) {
+				tabNiveau[ligne] = tableauTemp.splice(0, 28);
+				ligne++;
+			}
+			//console.log("Tableau Séparer");
+			//console.log("Ancien Tableau: "+tableauTemp.length);
+			//console.log("Nouveau Tableau: "+tabNiveau.length);
+
+		}
+	}
         
     function initAnimation() {
         objCanvas = document.getElementById('monCanvas');
 		objCanvas.focus();
         objC2D = objCanvas.getContext('2d');
+		initNiveau();
+		initSprites();
 	    dessiner(); // Dessiner une première fois
         animer();  // animer
     }
+
+	/**
+     *Fonction qui charge toutes les images nécèssaires au jeu
+	 */
+	function initSprites() {
+		imgEchelle = new Image();
+		imgEchelle.src = 'echelle.png';
+		imgBrique = new Image();
+		imgBrique.src = 'brique.png';
+		imgCoffre = new Image();
+		imgCoffre.src = 'coffre.png';
+	}
+
+	/**
+	 * 
+	 */
+	function initLodeRunner() {
+
+	}
 
     // Un cycle d'animation	
     function animer() {
@@ -53,12 +153,34 @@
 
     // Pour dessiner
 	function dessiner() {
-		dessinerBackground();
-		dessinerLadder();
-		//dessinerGrid();
+		dessinerNiveau();
+		//dessinerLadder();
+		dessinerGrid();
 	}
 
-	
+	function dessinerNiveau() {
+		objC2D.save();
+		dessinerBackground();
+		for(let i = 0; i < tabNiveau.length; i++) {
+			for(let j = 0; j < tabNiveau[i].length; j++) {
+				objImage = new Image();
+				switch(tabNiveau[i][j]) {
+					case 0:
+					objImage = imgEchelle;
+						break;
+					case 1:
+					objImage = imgBrique;
+						break;
+					case 2:
+					objImage = imgCoffre;
+						break;
+				}
+				objC2D.drawImage(objImage, j * 32, i * 32);
+			}
+		}
+		objC2D.restore();
+	}
+
 	function dessinerBackground() {
 		objC2D.save();
 		objC2D.fillStyle = 'black';
@@ -70,7 +192,7 @@
 		objC2D.save();
 		for(let i = 0; i < 28; i++) {
 			for(let j = 0; j < 17; j++) {
-				objC2D.drawImage(objLadder, i * 32, j * 32);
+				objC2D.drawImage(imgBrique, i * 32, j * 32);
 			}
 		}
 		objC2D.restore();
