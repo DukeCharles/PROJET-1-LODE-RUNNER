@@ -21,7 +21,7 @@
 	let imgNiveau = null;
 	let imgEchelle = null;
 	let imgBrique = null;
-	let imgBarrier = null;
+	let imgBeton = null;
 	let imgCoffre = null;
 
 	//Objet
@@ -35,8 +35,8 @@
         objCanvas = document.getElementById('monCanvas');
 		objCanvas.focus();
         objC2D = objCanvas.getContext('2d');
-		initNiveau();
 		initSprites();
+		initNiveau();
 		initGUI();
 	    dessiner(); // Dessiner une première fois
         animer();  // animer
@@ -59,8 +59,11 @@
 		//Sprite de LodeRunner
 		objLodeRunner.sprite = imgLodeRunner;
 		//Coordonnées
-		objLodeRunner.fltX;
-		objLodeRunner.fltY;
+		objLodeRunner.fltX = (CELL_WIDTH * CELL_DIMENSION) / 2;
+		objLodeRunner.fltY = (CELL_HEIGHT * CELL_DIMENSION);
+		//Vitesse
+		objLodeRunner.fltVitesse = 5;
+
 	}
 
 	/**
@@ -102,22 +105,22 @@
 				//console.log("RGB("+RED+", "+GREEN+", "+BLUE+")");
 				//Si le pixel est Brun(130, 70, 25) alors la case est une échelle
 				if((RED >= 125 && RED <= 135) && (GREEN >= 65 && GREEN <= 75) && (BLUE >= 20 && BLUE <= 30))
-					tableauTemp[cell_id] = 0;
+					tableauTemp[cell_id] = creerBloc(0);
 				//Si le pixel est Rouge(255, 0, 0) alors la case est une brique
 				else if(RED >= 254 && GREEN <= 5 && BLUE <= 5)
-					tableauTemp[cell_id]  = 1;
+					tableauTemp[cell_id]  = creerBloc(1);
 				//Si le pixel est Jaune(225, 225, 0) alors la case est un coffre
 				else if((RED >= 220 && RED <= 230) && (GREEN >= 220 && GREEN <= 230) && BLUE <= 5)
-					tableauTemp[cell_id]  = 2;
+					tableauTemp[cell_id]  = creerBloc(2);
 				else if(RED <= 5 && GREEN <= 5 && BLUE >= 254)
-					tableauTemp[cell_id]  = 3;
+					tableauTemp[cell_id]  = creerBloc(3);
 				//Sinon la case est vide
 				else 
-					tableauTemp[cell_id]  = -1;
+					tableauTemp[cell_id]  = creerBloc(-1);
 				cell_id++;
 			}
 
-			console.log("Tableau remplit -> Size: "+tableauTemp.length+" [32x32] CELLULES");
+			console.log("Tableau remplit -> Size: "+tableauTemp.length+" [32x32] Blocs");
 			//console.log("Size: "+tableauTemp.length);
 
 			//Séparer le tableau en un tableau a 2 dimensions
@@ -135,6 +138,55 @@
 	}
 
 	/**
+	 *Function qui créer un objet bloc en fonction du bloc_id qu'il recoit en paramètres
+	 *@param {number} bloc_id L'id du bloc que la fonction doit créer
+	 *@return un objet représentant un bloc du niveau.
+	 **/
+	function creerBloc(bloc_id) {
+		console.log(bloc_id)
+		let objBloc = new Object();
+		//sprite image
+		let strNomBlock = "";
+		let objImage = null;
+		let isSolid = false;
+		switch(bloc_id) {
+			case 0:
+				strNomBlock = "ECHELLE";
+				objImage = imgEchelle;
+				break;
+			case 1:
+				strNomBlock = "BRIQUE";
+				objImage = imgBrique;
+				isSolid = true;
+				break;
+			case 2:
+				strNomBlock = "COFFRE";
+				objImage = imgCoffre;
+				break;
+			case 3:
+				strNomBlock = "BETON";
+				objImage = imgBeton;
+				isSolid = true;
+				break;
+			default:
+				strNomBlock = "VIDE";
+				objImage = new Image();
+				isSolid = false;
+				break;
+		}
+		//
+		//Nom du block
+		objBloc.strNom = strNomBlock;
+		//sprite image
+		objBloc.sprite = objImage;
+		//SOLID BLOCK
+		objBloc.isSolid = isSolid;
+
+	return objBloc;
+
+	}
+
+	/**
      *Fonction qui charge toutes les images nécèssaires au jeu
 	 */
 	function initSprites() {
@@ -144,8 +196,8 @@
 		imgBrique.src = 'brique.png';
 		imgCoffre = new Image();
 		imgCoffre.src = 'coffre.png';
-		imgBarrier = new Image();
-		imgBarrier.src = 'barrier.png';
+		imgBeton = new Image();
+		imgBeton.src = 'beton.png';
 	}
 
     // Un cycle d'animation	
@@ -197,7 +249,7 @@
 	function dessiner() {
 		dessinerNiveau();
 		dessinerGUI();
-		dessinerGrid();
+		dessinerDebug();
 	}
 
 	function dessinerGUI() {
@@ -233,22 +285,7 @@
 		dessinerBackground();
 		for(let i = 0; i < tabNiveau.length; i++) {
 			for(let j = 0; j < tabNiveau[i].length; j++) {
-				objImage = new Image();
-				switch(tabNiveau[i][j]) {
-					case 0:
-					objImage = imgEchelle;
-						break;
-					case 1:
-					objImage = imgBrique;
-						break;
-					case 2:
-					objImage = imgCoffre;
-						break;
-					case 3:
-						objImage = imgBarrier;
-					break;
-				}
-				objC2D.drawImage(objImage, j * 32, i * 32);
+				objC2D.drawImage(tabNiveau[i][j].sprite, j * 32, i * 32);
 			}
 		}
 		objC2D.restore();
@@ -261,8 +298,9 @@
 		objC2D.restore();
 	}
 
-	function dessinerGrid() {
+	function dessinerDebug() {
 		objC2D.save();
+		//GRID
 		for(let i = 0; i < CELL_WIDTH; i++) {
 			for(let j = 0; j < CELL_HEIGHT; j++) {
 				objC2D.lineWidth = 2;
@@ -270,6 +308,15 @@
 				objC2D.strokeRect(i * CELL_DIMENSION, j * CELL_DIMENSION, CELL_DIMENSION, CELL_DIMENSION);
 			}
 		}
+
+		//HITBOX LODE RUNNER
+		//HITBOX GUARD
+
+		//HITBOX BRIQUE
+		//HITBOX ECHELLE
+		//HITBOX BARRIER
+		//HITBOX BARRE
+		//HITBOX COFFRE
 		objC2D.restore();
 	}
 
@@ -288,12 +335,22 @@
           return STR_MINUTES+":"+STR_SECONDS;;
       }
 
+	function gererControle() {
+		console.log("KeyCode -> "+event.keyCode);
+		console.log("Key -> "+event.key);
+		console.log("Code -> "+event.code);
+		//Bouger droite
+		//Bouger gauche
+		//Monter
+		//Descendre
+		//Détruire
+	}
 
    </script>
 </head>
 
 <body onload="initAnimation()"> 
-	<canvas id="monCanvas" width="896" height="608" tabIndex="1" onkeydown="">
+	<canvas id="monCanvas" width="896" height="608" tabIndex="1" onkeydown="gererControle(); return false">
 		Votre navigateur ne supporte pas la balise canvas
 	</canvas>
 </body>
