@@ -5,7 +5,7 @@
 
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <title>Lode Runner par Charles Morin et Andrew Aboujaoudé</title>
-  <link rel="stylesheet" type="text/css" href="" />
+  <link href='https://fonts.googleapis.com/css?family=Audiowide' rel='stylesheet'>
   <!-- Code JavaScript local -->
   <script type="text/javascript">
 	let objCanvas = null;
@@ -15,6 +15,7 @@
 	//
 	const CELL_HEIGHT = 17;
 	const CELL_WIDTH = 28;
+	const CELL_DIMENSION = 32;
 
 	//Images
 	let imgNiveau = null;
@@ -36,13 +37,18 @@
         objC2D = objCanvas.getContext('2d');
 		initNiveau();
 		initSprites();
+		initGUI();
 	    dessiner(); // Dessiner une première fois
         animer();  // animer
     }
 
 	function initGUI() {
 		objGUI = new Object;
-		
+		objGUI.intScore = 0;
+		objGUI.objDate = new Date();
+		objGUI.intTime = 0;
+		objGUI.intNiveau = 1;
+		objGUI.intVies = 5;
 	}
 
 	function initLodeRunner() {
@@ -63,7 +69,7 @@
 	 *BRICK = RED(255, 0, 0)
 	 *COFFRE = JAUNE(225, 225, 0)
      *ECHELLE = BRUN(130, 70, 25)
-	 *BARRIER = 
+	 *BARRIER = BLUE(0, 0, 255)
 	 * -1 = vide
 	 * 0  = échelle
 	 * 1 = brique
@@ -93,7 +99,7 @@
 				const GREEN = objPixels.data[p + 1];
 				const BLUE = objPixels.data[p + 2];
 
-				console.log("RGB("+RED+", "+GREEN+", "+BLUE+")");
+				//console.log("RGB("+RED+", "+GREEN+", "+BLUE+")");
 				//Si le pixel est Brun(130, 70, 25) alors la case est une échelle
 				if((RED >= 125 && RED <= 135) && (GREEN >= 65 && GREEN <= 75) && (BLUE >= 20 && BLUE <= 30))
 					tableauTemp[cell_id] = 0;
@@ -111,8 +117,8 @@
 				cell_id++;
 			}
 
-			console.log("Tableau remplis");
-			console.log("Size: "+tableauTemp.length);
+			console.log("Tableau remplit -> Size: "+tableauTemp.length+" [32x32] CELLULES");
+			//console.log("Size: "+tableauTemp.length);
 
 			//Séparer le tableau en un tableau a 2 dimensions
 			let ligne = 0;
@@ -120,10 +126,10 @@
 				tabNiveau[ligne] = tableauTemp.splice(0, 28);
 				ligne++;
 			}
-			console.log("Tableau Séparer");
+			console.log("Tableau Séparé:");
 			console.log("Ancien Tableau: "+tableauTemp.length);
 			console.log("Nouveau Tableau: "+tabNiveau.length);
-			console.log(tabNiveau[1][2]);
+			//console.log(tabNiveau[1][2]);
 			effacerDessin();
 		}
 	}
@@ -167,12 +173,59 @@
 	
 	// Pour mettre à jour l'animation
 	function mettreAjourAnimation() {
+		//Update Gui
+		mettreAjourGUI();
+	}
+
+	function mettreAjourGUI() {
+		//update Score
+		//mettreAjourScore();
+		//update Temps
+		mettreAjourTemps();
+	}
+
+	function mettreAjourTemps() {
+    	let objDate2 =  new Date();
+        if(objGUI.objDate != null && objDate2 != null) {
+            let msDifference = objDate2.getTime() - objGUI.objDate.getTime();
+            objGUI.objDate = objDate2;
+            objGUI.intTime += msDifference;
+        }
 	}
 
     // Pour dessiner
 	function dessiner() {
 		dessinerNiveau();
+		dessinerGUI();
 		dessinerGrid();
+	}
+
+	function dessinerGUI() {
+		objC2D.save();
+		//Dessiner le background du GUI
+		objC2D.fillStyle = 'black';
+		objC2D.fillRect(0, CELL_DIMENSION*CELL_HEIGHT, objCanvas.width, objCanvas.height);
+
+		/*
+		for(let i = 0; i < 3; i++) {
+			for(let j = 0; j < CELL_WIDTH; j++) {
+				objC2D.drawImage(imgBarrier, j * CELL_DIMENSION, objCanvas.height - i * CELL_DIMENSION);
+			}
+		}
+		*/
+
+		objC2D.font = '20px Audiowide';
+		objC2D.fillStyle = 'orange';
+		//Afficher Score
+			//MAX_SCORE est 9 999 999
+		objC2D.fillText(getScoreFormat(objGUI.intScore), 50, objCanvas.height - CELL_DIMENSION);
+		//Afficher Temps
+		objC2D.fillText("Temps: "+getTimeText(objGUI.intTime), 300, objCanvas.height - CELL_DIMENSION);
+		//Afficher Niveau
+		objC2D.fillText("Niveau: "+objGUI.intNiveau, 500, objCanvas.height - CELL_DIMENSION);
+		//Afficher Vie
+		objC2D.fillText("Vies: "+objGUI.intVies, 650, objCanvas.height - CELL_DIMENSION);
+		objC2D.restore();
 	}
 
 	function dessinerNiveau() {
@@ -210,23 +263,37 @@
 
 	function dessinerGrid() {
 		objC2D.save();
-		for(let i = 0; i < 28; i++) {
-			for(let j = 0; j < 17; j++) {
+		for(let i = 0; i < CELL_WIDTH; i++) {
+			for(let j = 0; j < CELL_HEIGHT; j++) {
 				objC2D.lineWidth = 2;
 				objC2D.strokeStyle = 'green';
-				objC2D.strokeRect(i * 32, j * 32, objCanvas.width, objCanvas.height);
+				objC2D.strokeRect(i * CELL_DIMENSION, j * CELL_DIMENSION, CELL_DIMENSION, CELL_DIMENSION);
 			}
 		}
 		objC2D.restore();
 	}
 
+	function getScoreFormat(intScore) {
+		let strPadding = "0000000";
+		return "Score: "+strPadding.substring(0, (strPadding.length - intScore.toString().length)) + intScore.toString();
+	}
+
+	function getTimeText(ms) {
+          let timePassed = new Date(0);
+          timePassed.setHours(0, 0, 0, ms);
+
+          const STR_MINUTES = (timePassed.getMinutes() < 10) ? "0"+timePassed.getMinutes():timePassed.getMinutes();
+          const STR_SECONDS = (timePassed.getSeconds() < 10) ? "0"+timePassed.getSeconds():timePassed.getSeconds();
+
+          return STR_MINUTES+":"+STR_SECONDS;;
+      }
 
 
    </script>
 </head>
 
 <body onload="initAnimation()"> 
-	<canvas id="monCanvas" width="896" height="544" tabIndex="1" onkeydown="">
+	<canvas id="monCanvas" width="896" height="608" tabIndex="1" onkeydown="">
 		Votre navigateur ne supporte pas la balise canvas
 	</canvas>
 </body>
