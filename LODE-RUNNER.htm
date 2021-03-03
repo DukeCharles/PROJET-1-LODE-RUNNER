@@ -16,28 +16,59 @@
 	const CELL_HEIGHT = 17;
 	const CELL_WIDTH = 28;
 
-	//Images 
+	//Images
+	let imgNiveau = null;
 	let imgEchelle = null;
 	let imgBrique = null;
+	let imgBarrier = null;
 	let imgCoffre = null;
 
+	//Objet
 	let objLodeRunner = null;
-
-	let imgNiveau = null;
+	let objGUI = null;
 
 	//Niveau
 	let tabNiveau = new Array();
+
+	function initAnimation() {
+        objCanvas = document.getElementById('monCanvas');
+		objCanvas.focus();
+        objC2D = objCanvas.getContext('2d');
+		initNiveau();
+		initSprites();
+	    dessiner(); // Dessiner une première fois
+        animer();  // animer
+    }
+
+	function initGUI() {
+		objGUI = new Object;
+		
+	}
+
+	function initLodeRunner() {
+		let imgLodeRunner = new Image();
+		imgLodeRunner.src = 'lodeRunner.png';
+
+		objLodeRunner = new Object;
+		//Sprite de LodeRunner
+		objLodeRunner.sprite = imgLodeRunner;
+		//Coordonnées
+		objLodeRunner.fltX;
+		objLodeRunner.fltY;
+	}
 
 	/**
 	 * Initialiser le niveau
 	 * MAP CONVERT rgb
 	 *BRICK = RED(255, 0, 0)
-	 *COFFRE = JAUNE(220, 225, 0)
+	 *COFFRE = JAUNE(225, 225, 0)
      *ECHELLE = BRUN(130, 70, 25)
+	 *BARRIER = 
 	 * -1 = vide
 	 * 0  = échelle
 	 * 1 = brique
 	 * 2 = coffre
+	 * 3 = barrier
 	 */
 	function initNiveau() {
 		objC2D.save();
@@ -70,8 +101,10 @@
 				else if(RED >= 254 && GREEN <= 5 && BLUE <= 5)
 					tableauTemp[cell_id]  = 1;
 				//Si le pixel est Jaune(225, 225, 0) alors la case est un coffre
-				else if((RED >= 220 && RED <= 230) && (GREEN >= 220 && GREEN <= 230) && BLUE == 0)
+				else if((RED >= 220 && RED <= 230) && (GREEN >= 220 && GREEN <= 230) && BLUE <= 5)
 					tableauTemp[cell_id]  = 2;
+				else if(RED <= 5 && GREEN <= 5 && BLUE >= 254)
+					tableauTemp[cell_id]  = 3;
 				//Sinon la case est vide
 				else 
 					tableauTemp[cell_id]  = -1;
@@ -94,16 +127,6 @@
 			effacerDessin();
 		}
 	}
-        
-    function initAnimation() {
-        objCanvas = document.getElementById('monCanvas');
-		objCanvas.focus();
-        objC2D = objCanvas.getContext('2d');
-		initNiveau();
-		initSprites();
-	    dessiner(); // Dessiner une première fois
-        animer();  // animer
-    }
 
 	/**
      *Fonction qui charge toutes les images nécèssaires au jeu
@@ -115,13 +138,8 @@
 		imgBrique.src = 'brique.png';
 		imgCoffre = new Image();
 		imgCoffre.src = 'coffre.png';
-	}
-
-	/**
-	 * 
-	 */
-	function initLodeRunner() {
-
+		imgBarrier = new Image();
+		imgBarrier.src = 'barrier.png';
 	}
 
     // Un cycle d'animation	
@@ -154,7 +172,6 @@
     // Pour dessiner
 	function dessiner() {
 		dessinerNiveau();
-		//dessinerLadder();
 		dessinerGrid();
 	}
 
@@ -174,6 +191,9 @@
 					case 2:
 					objImage = imgCoffre;
 						break;
+					case 3:
+						objImage = imgBarrier;
+					break;
 				}
 				objC2D.drawImage(objImage, j * 32, i * 32);
 			}
@@ -185,16 +205,6 @@
 		objC2D.save();
 		objC2D.fillStyle = 'black';
 		objC2D.fillRect(0, 0, objCanvas.width, objCanvas.height);
-		objC2D.restore();
-	}
-
-	function dessinerLadder() {
-		objC2D.save();
-		for(let i = 0; i < 28; i++) {
-			for(let j = 0; j < 17; j++) {
-				objC2D.drawImage(imgBrique, i * 32, j * 32);
-			}
-		}
 		objC2D.restore();
 	}
 
