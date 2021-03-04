@@ -269,7 +269,8 @@
 		p.fltY2 = p.fltY + CELL_DIMENSION;
 		p.direction = checkDirection(p);
 
-		//Tomber 
+		//Tomber
+		/* 
 		if(!p.binMarcher) {
 			if(p.fltY % CELL_DIMENSION == 0 && tabBlocs[Math.ceil(p.gridPos.LIGNE + 1)][Math.ceil(p.gridPos.COLONNE)].strNom != 'VIDE') {
 				p.binMarcher = true;
@@ -288,6 +289,7 @@
 				p.binMarcher = false;
 			}
 		} 
+		*/
 	}
 
 	function mettreAjourGUI() {
@@ -459,59 +461,73 @@
 	  Cette fonction met à jour la propriété "direction" du character "c"
 	 */
 	function checkDirection(c) {
-		let binGauche = true;
-		let binDroite = true;
+		let binGauche = false;
+		let binDroite = false;
 		let binHaut = false;
 		let binBas = false;
 		let binTomber = false;
 
 		//GAUCHE
-		//Sélectionner les blocs à gauche du personnage
-		let tabBlocsGauche = [
-			tabBlocs[Math.floor(c.ligne)][Math.ceil(c.colonne) - 1],
-			tabBlocs[Math.ceil(c.ligne)][Math.ceil(c.colonne) - 1]
-		];
-		for(let i = 0; i < tabBlocsGauche.length; i++) {
-			//Regarde si les blocs à gauche sont solides
-			if(tabBlocsGauche[i].isSolid)
-				binGauche = false;
+		//Regarder si le personnage n'a pas franchi la limite à gauche
+		if(c.fltX > 0) {
+			//Sélectionner les blocs à gauche du personnage
+			let tabBlocsGauche = [
+				tabBlocs[Math.floor(c.ligne)][Math.ceil(c.colonne) - 1],
+				tabBlocs[Math.ceil(c.ligne)][Math.ceil(c.colonne) - 1]
+			];
+			for(let i = 0; i < tabBlocsGauche.length; i++) {
+				//Regarde si les blocs à gauche sont solides
+				if(!tabBlocsGauche[i].isSolid)
+					binGauche = true;
+			}
 		}
 
 		//DROITE
-		//Sélectionner les blocs à droite du personnage
-		let tabBlocsDroite = [
-			tabBlocs[Math.floor(c.ligne)][Math.floor(c.colonne) + 1],
-			tabBlocs[Math.ceil(c.ligne)][Math.floor(c.colonne) + 1]
-		];
-		for(let i = 0; i < tabBlocsDroite.length; i++) {
-			//Regarde si les blocs à droite sont solides
-			if(tabBlocsDroite[i].isSolid)
-				binDroite = false;
+		//Regarder si le personnage n'a pas franchi la limite à droite
+		if(c.fltX + CELL_DIMENSION < objCanvas.width) {
+			//Sélectionner les blocs à droite du personnage
+			let tabBlocsDroite = [
+				tabBlocs[Math.floor(c.ligne)][Math.floor(c.colonne) + 1],
+				tabBlocs[Math.ceil(c.ligne)][Math.floor(c.colonne) + 1]
+			];
+			for(let i = 0; i < tabBlocsDroite.length; i++) {
+				//Regarde si les blocs à droite sont solides
+				if(!tabBlocsDroite[i].isSolid)
+					binDroite = true;
+			}
 		}
 
 		//HAUT
-		//Regarder si le joueur est sur un block complet? (Horizontalement)
-		if(c.colonne - parseInt(c.colonne) == 0) {
-			//Regarder si le joueur est sur une echelle?
-			if(tabBlocs[Math.ceil(c.ligne)][c.colonne].strNom == 'ECHELLE') {
-				//Regarder si le bloc au dessus du joueur est un bloc vide ou une echelle?
-				if(tabBlocs[Math.ceil(c.ligne - 1)][c.colonne].strNom == 'ECHELLE' || tabBlocs[Math.ceil(c.ligne - 1)][c.colonne].strNom == 'VIDE') {
-					binHaut = true;
+		//Regarder si le personnage n'a pas franchi la limite en haut
+		if(c.fltY > 0) {
+			//Regarder si le joueur est sur un block complet? (Horizontalement)
+			if(c.colonne - parseInt(c.colonne) == 0) {
+				//Regarder si le joueur est sur une echelle?
+				if(tabBlocs[Math.ceil(c.ligne)][c.colonne].strNom == 'ECHELLE') {
+					//Regarder si le bloc au dessus du joueur est un bloc vide ou une echelle?
+					if(tabBlocs[Math.ceil(c.ligne - 1)][c.colonne].strNom == 'ECHELLE' || tabBlocs[Math.ceil(c.ligne - 1)][c.colonne].strNom == 'VIDE') {
+						binHaut = true;
+					}
 				}
 			}
 		}
 
 		//BAS
-		//Regarder si le joueur est sur un block complet? (Horizontalement)
-		if(c.colonne - parseInt(c.colonne) == 0) {
-			//Regarder si le joueur est sur une echelle ou dans le vide?
-			if(tabBlocs[Math.floor(c.ligne)][c.colonne].strNom == 'ECHELLE' || tabBlocs[Math.floor(c.ligne)][c.colonne].strNom == 'VIDE') {
-				//Regarder si le bloc au dessous du joueur est une echelle? Q: Est-ce qu'on permet de tomber si il y a du vide en dessous d'une echelle?
-				if(tabBlocs[Math.floor(c.ligne + 1)][c.colonne].strNom == 'ECHELLE') {
-					binBas = true;
+		//Regarder si le personnage n'a pas franchi la limite en haut
+		if(c.fltY + CELL_DIMENSION < (CELL_HEIGHT * CELL_DIMENSION)) {
+			//Regarder si le joueur est sur un block complet? (Horizontalement)
+			if(c.colonne - parseInt(c.colonne) == 0) {
+				//Regarder si le joueur est sur une echelle ou dans le vide?
+				if(tabBlocs[Math.floor(c.ligne)][c.colonne].strNom == 'ECHELLE' || tabBlocs[Math.floor(c.ligne)][c.colonne].strNom == 'VIDE') {
+					//Regarder si le bloc au dessous du joueur est une echelle? Q: Est-ce qu'on permet de tomber si il y a du vide en dessous d'une echelle?
+					if(tabBlocs[Math.floor(c.ligne + 1)][c.colonne].strNom == 'ECHELLE') {
+						binBas = true;
+					}
 				}
 			}
 		}
+
+		//TOMBER
 
 		return {gauche: binGauche, droite: binDroite, haut: binHaut, bas: binBas};
 	}
@@ -543,7 +559,7 @@
 		//Bouger gauche
 		if(event.keyCode == 37) {
 			if(p.direction.gauche) {
-				if(p.orientation.gauche)
+				if(p.orientation.gauche && p.fltX >= 0)
 					p.fltX -= p.fltVitesse;
 				else
 					changeOrientation(p, "gauche");
