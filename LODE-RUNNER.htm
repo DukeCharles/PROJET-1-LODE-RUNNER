@@ -31,6 +31,9 @@
 	//Niveau
 	let tabBlocs = new Array();
 
+	//DEBUG mode
+	let binDebug = false;
+
 	function initAnimation() {
         objCanvas = document.getElementById('monCanvas');
 		objCanvas.focus();
@@ -62,15 +65,20 @@
 		//Coordonnées
 		p.fltX = (CELL_WIDTH * CELL_DIMENSION) / 2;
 		p.fltY = ((CELL_HEIGHT - 3) * CELL_DIMENSION);
-		p.fltX2 = p.fltX + CELL_DIMENSION;
-		p.fltY2 = p.fltY + CELL_DIMENSION;
-		p.gridPos = {LIGNE: (CELL_WIDTH / 2), COLONNE: CELL_HEIGHT - 3};
+		//Position de l'image dans la grillle
+		p.ligne = (CELL_WIDTH / 2);
+		p.colonne = CELL_HEIGHT - 3;
 		//Vitesse
 		p.fltVitesse = 8;
 		//State
+		p.direction = {gauche: true, droite: true, haut: true, bas: true, tomber: false};
+		p.orientation = {gauche: true, droite: false, haut: false, bas: false, tomber: false};
+
+		//Artefacts(Inutile)
 		p.binMarcher = true;
-		p.binGauche = true;
-		
+		p.gridPos = {LIGNE: (CELL_WIDTH / 2), COLONNE: CELL_HEIGHT - 3};
+		p.fltX2 = p.fltX + CELL_DIMENSION;
+		p.fltY2 = p.fltY + CELL_DIMENSION;
 
 	}
 
@@ -255,9 +263,13 @@
 	function mettreAjourLodeRunner() {
 		//Mettre a jour Ligne et Colonne -> gridPos
 		p.gridPos = getGridPos(p.fltX, p.fltY);
+		p.ligne = getGridPos(p.fltX, p.fltY).LIGNE;
+		p.colonne = getGridPos(p.fltX, p.fltY).COLONNE;
+		p.fltX2 = p.fltX + CELL_DIMENSION;
 		p.fltY2 = p.fltY + CELL_DIMENSION;
+		p.direction = checkDirection(p);
 
-		//Tomber
+		//Tomber 
 		if(!p.binMarcher) {
 			if(p.fltY % CELL_DIMENSION == 0 && tabBlocs[Math.ceil(p.gridPos.LIGNE + 1)][Math.ceil(p.gridPos.COLONNE)].strNom != 'VIDE') {
 				p.binMarcher = true;
@@ -296,22 +308,36 @@
 	function dessiner() {
 		dessinerNiveau();
 		dessinerGUI();
-		dessinerDebug();
+		if(binDebug)
+			dessinerDebug();
 		dessinerLodeRunner();
 	}
 
 	function dessinerLodeRunner() {		
 		objC2D.save();
 		
-		if(!p.binGauche) {
+		//Marche à gauche
+		if(p.orientation.gauche) {
+			objC2D.drawImage(p.sprite, p.fltX, p.fltY);
+		}
+		//Marche a droite
+		if(p.orientation.droite) {
 			objC2D.translate(p.fltX + p.sprite.width, p.fltY);
 			objC2D.scale(-1, 1);
 			objC2D.drawImage(p.sprite, 0, 0);
 		}
-		else {
-		
+		//Monte ou descends
+		if(p.orientation.haut || p.orientation.bas) {
+			//TEMP SPRITE
 			objC2D.drawImage(p.sprite, p.fltX, p.fltY);
 		}
+		//Tombe
+		if(p.orientation.tomber) {
+			//TEMP SPRITE
+			objC2D.drawImage(p.sprite, p.fltX, p.fltY);
+		}
+
+		//Creuse un trou
 		objC2D.restore();
 	}
 
@@ -356,11 +382,7 @@
 	function dessinerDebug() {
 		objC2D.save();
 		//GRID
-		//HITBOX BRIQUE
-		//HITBOX ECHELLE
-		//HITBOX BARRIER
-		//HITBOX BARRE
-		//HITBOX COFFRE
+		//HITBOX BRIQUE, COFFRE, ECHELLE, BARRIER, BARRE
 		for(let i = 0; i < tabBlocs.length; i++) {
 			for(let j = 0; j < tabBlocs[i].length; j++) {
 					if(tabBlocs[i][j].strNom == 'VIDE')
@@ -382,13 +404,19 @@
 		objC2D.fillStyle = 'pink';
 		objC2D.fillText("X: "+p.fltX+" Y: "+p.fltY, 0, 15);
 		objC2D.fillText("X2: "+p.fltX2+" Y2: "+p.fltY2, 0, 30);
-		objC2D.fillText("L: "+p.gridPos.LIGNE+" C: "+p.gridPos.COLONNE, 0, 45);
+		objC2D.fillText("L: "+p.ligne+" C: "+p.colonne, 0, 45);
+		objC2D.fillText("G: "+p.direction.gauche+" D: "+p.direction.droite, 0, 60);
+		objC2D.fillText("H: "+p.direction.haut+" B: "+p.direction.bas, 0, 75);
+		objC2D.fillText("O-G: "+p.orientation.gauche+"  O-D: "+p.orientation.droite, 0, 90);
+		objC2D.fillText("O-H: "+p.orientation.haut+" O-B: "+p.orientation.bas, 0, 105);
 
 		//HITBOX LODE RUNNER
+		objC2D.linewidth = 50;
 		objC2D.strokeStyle = 'blue';
 		objC2D.strokeRect(p.fltX, p.fltY, CELL_DIMENSION, CELL_DIMENSION);
-		//HITBOX GUARD
+		//SCAN HITBOX LODE RUNNER
 
+		//HITBOX GUARD
 		objC2D.restore();
 	}
 
@@ -411,7 +439,137 @@
 		return { LIGNE: fltY / CELL_DIMENSION, COLONNE: fltX / CELL_DIMENSION};
 	}
 
+	function changeOrientation(personnage, strOrientation) {
+		personnage.orientation.gauche = false;
+		personnage.orientation.droite = false;
+		personnage.orientation.haut = false;
+		personnage.orientation.bas = false;
+		personnage.orientation.tomber = false;
+		personnage["orientation"][strOrientation] = true;
+	}
+
+	/**
+	 *Scan dans les 4 directions autours du personnage en paramètres
+	  afin de savoir s'il y a la permission de faire les actions suivantes
+	  -Marcher à gauche
+	  -Marcher à droite
+	  -Monter en haut
+	  -Descendre en bas
+	  -Doit Tomber
+	  Cette fonction met à jour la propriété "direction" du character "c"
+	 */
+	function checkDirection(c) {
+		let binGauche = true;
+		let binDroite = true;
+		let binHaut = false;
+		let binBas = false;
+		let binTomber = false;
+
+		//GAUCHE
+		//Sélectionner les blocs à gauche du personnage
+		let tabBlocsGauche = [
+			tabBlocs[Math.floor(c.ligne)][Math.ceil(c.colonne) - 1],
+			tabBlocs[Math.ceil(c.ligne)][Math.ceil(c.colonne) - 1]
+		];
+		for(let i = 0; i < tabBlocsGauche.length; i++) {
+			//Regarde si les blocs à gauche sont solides
+			if(tabBlocsGauche[i].isSolid)
+				binGauche = false;
+		}
+
+		//DROITE
+		//Sélectionner les blocs à droite du personnage
+		let tabBlocsDroite = [
+			tabBlocs[Math.floor(c.ligne)][Math.floor(c.colonne) + 1],
+			tabBlocs[Math.ceil(c.ligne)][Math.floor(c.colonne) + 1]
+		];
+		for(let i = 0; i < tabBlocsDroite.length; i++) {
+			//Regarde si les blocs à droite sont solides
+			if(tabBlocsDroite[i].isSolid)
+				binDroite = false;
+		}
+
+		//HAUT
+		//Regarder si le joueur est sur un block complet? (Horizontalement)
+		if(c.colonne - parseInt(c.colonne) == 0) {
+			//Regarder si le joueur est sur une echelle?
+			if(tabBlocs[Math.ceil(c.ligne)][c.colonne].strNom == 'ECHELLE') {
+				//Regarder si le bloc au dessus du joueur est un bloc vide ou une echelle?
+				if(tabBlocs[Math.ceil(c.ligne - 1)][c.colonne].strNom == 'ECHELLE' || tabBlocs[Math.ceil(c.ligne - 1)][c.colonne].strNom == 'VIDE') {
+					binHaut = true;
+				}
+			}
+		}
+
+		//BAS
+		//Regarder si le joueur est sur un block complet? (Horizontalement)
+		if(c.colonne - parseInt(c.colonne) == 0) {
+			//Regarder si le joueur est sur une echelle ou dans le vide?
+			if(tabBlocs[Math.floor(c.ligne)][c.colonne].strNom == 'ECHELLE' || tabBlocs[Math.floor(c.ligne)][c.colonne].strNom == 'VIDE') {
+				//Regarder si le bloc au dessous du joueur est une echelle? Q: Est-ce qu'on permet de tomber si il y a du vide en dessous d'une echelle?
+				if(tabBlocs[Math.floor(c.ligne + 1)][c.colonne].strNom == 'ECHELLE') {
+					binBas = true;
+				}
+			}
+		}
+
+		return {gauche: binGauche, droite: binDroite, haut: binHaut, bas: binBas};
+	}
+
+	/**
+	 *Gère toute les entrées faites sur le clavier par le joueur
+	*/
 	function gererControle() {
+		//DEBUG #TODO supprimer à la fin
+		console.log("KeyCode -> "+event.keyCode);
+
+		//Debug F3
+		if(event.keyCode == 114) {
+			if(binDebug)
+				binDebug = false;
+			else if(!binDebug)
+				binDebug = true;
+		}
+
+		//Bouger droite	
+		if(event.keyCode == 39) {
+			if(p.direction.droite) {
+				if(p.orientation.droite)
+					p.fltX += p.fltVitesse;
+				else
+					changeOrientation(p, "droite");
+			}
+		}
+		//Bouger gauche
+		if(event.keyCode == 37) {
+			if(p.direction.gauche) {
+				if(p.orientation.gauche)
+					p.fltX -= p.fltVitesse;
+				else
+					changeOrientation(p, "gauche");
+			}
+		}
+		//Monter
+		if(event.keyCode == 38) {
+			if(p.direction.haut) {
+				if(p.orientation.haut)
+					p.fltY -= p.fltVitesse;
+				else
+					changeOrientation(p, "haut");
+			}
+		}
+		//Descendre
+		if(event.keyCode == 40) {
+			if(p.direction.bas) {
+				if(p.orientation.bas)
+					p.fltY += p.fltVitesse;
+				else
+					changeOrientation(p, "bas");
+			}
+		}
+	}
+
+	function gererControleOLD() {
 		console.log("KeyCode -> "+event.keyCode);
 
 		if(p.binMarcher) { 
