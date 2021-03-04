@@ -12,7 +12,7 @@
 	let objC2D = null;
 	let objCycleAnimation = null;
 
-	//
+	//Constante
 	const CELL_HEIGHT = 17;
 	const CELL_WIDTH = 28;
 	const CELL_DIMENSION = 32;
@@ -24,12 +24,12 @@
 	let imgBeton = null;
 	let imgCoffre = null;
 
-	//Objet
-	let objLodeRunner = null;
-	let objGUI = null;
+	//Objets
+	let p = null; //LodeRunner
+	let objGUI = null; //Interface d'affichage des points, du temps, du niveau et des vies.
 
 	//Niveau
-	let tabNiveau = new Array();
+	let tabBlocs = new Array();
 
 	function initAnimation() {
         objCanvas = document.getElementById('monCanvas');
@@ -38,6 +38,7 @@
 		initSprites();
 		initNiveau();
 		initGUI();
+		initLodeRunner();
 	    dessiner(); // Dessiner une première fois
         animer();  // animer
     }
@@ -55,14 +56,21 @@
 		let imgLodeRunner = new Image();
 		imgLodeRunner.src = 'lodeRunner.png';
 
-		objLodeRunner = new Object;
+		p = new Object;
 		//Sprite de LodeRunner
-		objLodeRunner.sprite = imgLodeRunner;
+		p.sprite = imgLodeRunner;
 		//Coordonnées
-		objLodeRunner.fltX = (CELL_WIDTH * CELL_DIMENSION) / 2;
-		objLodeRunner.fltY = (CELL_HEIGHT * CELL_DIMENSION);
+		p.fltX = (CELL_WIDTH * CELL_DIMENSION) / 2;
+		p.fltY = ((CELL_HEIGHT - 3) * CELL_DIMENSION);
+		p.fltX2 = p.fltX + CELL_DIMENSION;
+		p.fltY2 = p.fltY + CELL_DIMENSION;
+		p.gridPos = {LIGNE: (CELL_WIDTH / 2), COLONNE: CELL_HEIGHT - 3};
 		//Vitesse
-		objLodeRunner.fltVitesse = 5;
+		p.fltVitesse = 8;
+		//State
+		p.binMarcher = true;
+		p.binGauche = true;
+		
 
 	}
 
@@ -126,12 +134,22 @@
 			//Séparer le tableau en un tableau a 2 dimensions
 			let ligne = 0;
 			while(tableauTemp.length) {
-				tabNiveau[ligne] = tableauTemp.splice(0, 28);
+				tabBlocs[ligne] = tableauTemp.splice(0, 28);
 				ligne++;
+			}
+			//Données coordonnées
+			//j * 32, i * 32
+			for(let i = 0; i < tabBlocs.length; i++) {
+				for(let j = 0; j < tabBlocs[i].length; j++) {
+					tabBlocs[i][j].x = j * CELL_DIMENSION;
+					tabBlocs[i][j].x2 = tabBlocs[i][j].x + CELL_DIMENSION;
+					tabBlocs[i][j].y = i * CELL_DIMENSION;
+					tabBlocs[i][j].y2 = tabBlocs[i][j].y + CELL_DIMENSION;
+				}
 			}
 			console.log("Tableau Séparé:");
 			console.log("Ancien Tableau: "+tableauTemp.length);
-			console.log("Nouveau Tableau: "+tabNiveau.length);
+			console.log("Nouveau Tableau: "+tabBlocs.length);
 			//console.log(tabNiveau[1][2]);
 			effacerDessin();
 		}
@@ -143,8 +161,8 @@
 	 *@return un objet représentant un bloc du niveau.
 	 **/
 	function creerBloc(bloc_id) {
-		console.log(bloc_id)
 		let objBloc = new Object();
+
 		//sprite image
 		let strNomBlock = "";
 		let objImage = null;
@@ -174,13 +192,17 @@
 				isSolid = false;
 				break;
 		}
-		//
 		//Nom du block
 		objBloc.strNom = strNomBlock;
 		//sprite image
 		objBloc.sprite = objImage;
 		//SOLID BLOCK
 		objBloc.isSolid = isSolid;
+		//Coordonnées/Hitbox
+		objBloc.x;
+		objBloc.x2;
+		objBloc.y;
+		objBloc.y2;
 
 	return objBloc;
 
@@ -227,11 +249,36 @@
 	function mettreAjourAnimation() {
 		//Update Gui
 		mettreAjourGUI();
+		mettreAjourLodeRunner();
+	}
+
+	function mettreAjourLodeRunner() {
+		//Mettre a jour Ligne et Colonne -> gridPos
+		p.gridPos = getGridPos(p.fltX, p.fltY);
+		p.fltY2 = p.fltY + CELL_DIMENSION;
+
+		//Tomber
+		if(!p.binMarcher) {
+			if(p.fltY % CELL_DIMENSION == 0 && tabBlocs[Math.ceil(p.gridPos.LIGNE + 1)][Math.ceil(p.gridPos.COLONNE)].strNom != 'VIDE') {
+				p.binMarcher = true;
+			}
+			else 
+				p.fltY += 4;
+		}
+		else if(p.fltY % CELL_DIMENSION == 0) {
+			if((p.binGauche
+			 && tabBlocs[Math.ceil(p.gridPos.LIGNE)][Math.ceil(p.gridPos.COLONNE)].strNom == 'VIDE'
+			 && tabBlocs[Math.ceil(p.gridPos.LIGNE + 1)][Math.ceil(p.gridPos.COLONNE)].strNom == 'VIDE')
+			  || 
+			(!p.binGauche
+			 && tabBlocs[Math.ceil(p.gridPos.LIGNE)][Math.floor(p.gridPos.COLONNE)].strNom == 'VIDE'
+			 && tabBlocs[Math.ceil(p.gridPos.LIGNE + 1)][Math.floor(p.gridPos.COLONNE)].strNom == 'VIDE')) {
+				p.binMarcher = false;
+			}
+		} 
 	}
 
 	function mettreAjourGUI() {
-		//update Score
-		//mettreAjourScore();
 		//update Temps
 		mettreAjourTemps();
 	}
@@ -250,6 +297,22 @@
 		dessinerNiveau();
 		dessinerGUI();
 		dessinerDebug();
+		dessinerLodeRunner();
+	}
+
+	function dessinerLodeRunner() {		
+		objC2D.save();
+		
+		if(!p.binGauche) {
+			objC2D.translate(p.fltX + p.sprite.width, p.fltY);
+			objC2D.scale(-1, 1);
+			objC2D.drawImage(p.sprite, 0, 0);
+		}
+		else {
+		
+			objC2D.drawImage(p.sprite, p.fltX, p.fltY);
+		}
+		objC2D.restore();
 	}
 
 	function dessinerGUI() {
@@ -257,15 +320,7 @@
 		//Dessiner le background du GUI
 		objC2D.fillStyle = 'black';
 		objC2D.fillRect(0, CELL_DIMENSION*CELL_HEIGHT, objCanvas.width, objCanvas.height);
-
-		/*
-		for(let i = 0; i < 3; i++) {
-			for(let j = 0; j < CELL_WIDTH; j++) {
-				objC2D.drawImage(imgBarrier, j * CELL_DIMENSION, objCanvas.height - i * CELL_DIMENSION);
-			}
-		}
-		*/
-
+		
 		objC2D.font = '20px Audiowide';
 		objC2D.fillStyle = 'orange';
 		//Afficher Score
@@ -283,9 +338,9 @@
 	function dessinerNiveau() {
 		objC2D.save();
 		dessinerBackground();
-		for(let i = 0; i < tabNiveau.length; i++) {
-			for(let j = 0; j < tabNiveau[i].length; j++) {
-				objC2D.drawImage(tabNiveau[i][j].sprite, j * 32, i * 32);
+		for(let i = 0; i < tabBlocs.length; i++) {
+			for(let j = 0; j < tabBlocs[i].length; j++) {
+				objC2D.drawImage(tabBlocs[i][j].sprite, tabBlocs[i][j].x, tabBlocs[i][j].y);
 			}
 		}
 		objC2D.restore();
@@ -301,22 +356,39 @@
 	function dessinerDebug() {
 		objC2D.save();
 		//GRID
-		for(let i = 0; i < CELL_WIDTH; i++) {
-			for(let j = 0; j < CELL_HEIGHT; j++) {
-				objC2D.lineWidth = 2;
-				objC2D.strokeStyle = 'green';
-				objC2D.strokeRect(i * CELL_DIMENSION, j * CELL_DIMENSION, CELL_DIMENSION, CELL_DIMENSION);
-			}
-		}
-
-		//HITBOX LODE RUNNER
-		//HITBOX GUARD
-
 		//HITBOX BRIQUE
 		//HITBOX ECHELLE
 		//HITBOX BARRIER
 		//HITBOX BARRE
 		//HITBOX COFFRE
+		for(let i = 0; i < tabBlocs.length; i++) {
+			for(let j = 0; j < tabBlocs[i].length; j++) {
+					if(tabBlocs[i][j].strNom == 'VIDE')
+						objC2D.strokeStyle = 'green';
+					else if(tabBlocs[i][j].strNom == 'COFFRE')
+						objC2D.strokeStyle = 'yellow';
+					else if(tabBlocs[i][j].strNom == 'ECHELLE')
+						objC2D.strokeStyle = 'red';
+					else if(tabBlocs[i][j].strNom == 'BRIQUE' || tabBlocs[i][j].strNom == 'BETON')
+						objC2D.strokeStyle = 'cyan';
+
+					objC2D.linewidth = 2;
+					objC2D.strokeRect(tabBlocs[i][j].x, tabBlocs[i][j].y, CELL_DIMENSION, CELL_DIMENSION);
+			}
+		}
+		
+		//INFORMATION LODE RUNNER
+		objC2D.font = '15px Arial';
+		objC2D.fillStyle = 'pink';
+		objC2D.fillText("X: "+p.fltX+" Y: "+p.fltY, 0, 15);
+		objC2D.fillText("X2: "+p.fltX2+" Y2: "+p.fltY2, 0, 30);
+		objC2D.fillText("L: "+p.gridPos.LIGNE+" C: "+p.gridPos.COLONNE, 0, 45);
+
+		//HITBOX LODE RUNNER
+		objC2D.strokeStyle = 'blue';
+		objC2D.strokeRect(p.fltX, p.fltY, CELL_DIMENSION, CELL_DIMENSION);
+		//HITBOX GUARD
+
 		objC2D.restore();
 	}
 
@@ -335,15 +407,60 @@
           return STR_MINUTES+":"+STR_SECONDS;;
       }
 
+	function getGridPos(fltX, fltY) {
+		return { LIGNE: fltY / CELL_DIMENSION, COLONNE: fltX / CELL_DIMENSION};
+	}
+
 	function gererControle() {
 		console.log("KeyCode -> "+event.keyCode);
-		console.log("Key -> "+event.key);
-		console.log("Code -> "+event.code);
-		//Bouger droite
-		//Bouger gauche
-		//Monter
-		//Descendre
-		//Détruire
+
+		if(p.binMarcher) { 
+			
+			const LIGNE = Math.ceil(p.gridPos.LIGNE);
+			const COLONNE = Math.ceil(p.gridPos.COLONNE);
+			//Bouger droite	
+			if(event.keyCode == 39) {
+				if(!p.binGauche 
+					&& p.fltY % CELL_DIMENSION == 0
+					&& p.fltX2 <= objCanvas.width 
+					&& !tabBlocs[LIGNE][Math.floor(p.gridPos.COLONNE) + 1].isSolid) {
+					p.fltX += p.fltVitesse;
+					p.fltX2 = p.fltX + CELL_DIMENSION;
+				}
+				p.binGauche = false;
+			}
+			//Bouger gauche
+			if(event.keyCode == 37) { 
+				if(p.binGauche 
+					&& p.fltY % CELL_DIMENSION == 0 
+					&& p.fltX >= 0 
+					&& !tabBlocs[LIGNE][COLONNE - 1].isSolid) {
+					p.fltX -= p.fltVitesse;
+					p.fltX2 = p.fltX + CELL_DIMENSION;
+				}
+				p.binGauche = true;
+			}
+			//Monter
+			if(event.keyCode == 38) {
+				if(p.fltX % CELL_DIMENSION == 0 
+					&& p.fltY >= 0
+					&& tabBlocs[LIGNE][COLONNE].strNom == 'ECHELLE'
+					&& !tabBlocs[LIGNE - 1][COLONNE].isSolid) {
+					p.fltY -= p.fltVitesse;
+					p.fltY2 = p.fltY + CELL_DIMENSION;
+				}
+			}
+			//Descendre
+			if(event.keyCode == 40) {
+				if(p.fltX % CELL_DIMENSION == 0 
+					&& tabBlocs[LIGNE][COLONNE].strNom == 'ECHELLE' 
+					&& !tabBlocs[Math.floor(p.gridPos.LIGNE) + 1][COLONNE].isSolid) {
+					p.fltY += p.fltVitesse;
+					p.fltY2 = p.fltY + CELL_DIMENSION;
+				}
+			}
+			//Détruire
+		}
 	}
 
    </script>
