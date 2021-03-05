@@ -56,35 +56,33 @@
 	}
 
 	function initLodeRunner() {
-		let imgLodeRunner = new Image();
-		imgLodeRunner.src = 'lodeRunner.png';
+		//Sprites
+		//Marche
+		let imgSpriteSheet = new Image();
+		imgSpriteSheet.src = 'images/lodeRunner_spritesheet.png'
 
-		p = new Object;
-		//Sprite de LodeRunner
-		p.sprite = imgLodeRunner;
-		//Coordonnées
-		p.fltX = (CELL_WIDTH * CELL_DIMENSION) / 2;
-		p.fltY = ((CELL_HEIGHT - 3) * CELL_DIMENSION);
-		//Position de l'image dans la grillle
-		p.ligne = (CELL_WIDTH / 2);
-		p.colonne = CELL_HEIGHT - 3;
-		//Vitesse
-		p.fltVitesse = 8;
-		//State
-		p.direction = {gauche: true, droite: true, haut: true, bas: true, tomber: false};
-		p.orientation = {gauche: true, droite: false, haut: false, bas: false, tomber: false};
-
-		//Artefacts(Inutile)
-		p.binMarcher = true;
-		p.gridPos = {LIGNE: (CELL_WIDTH / 2), COLONNE: CELL_HEIGHT - 3};
-		p.fltX2 = p.fltX + CELL_DIMENSION;
-		p.fltY2 = p.fltY + CELL_DIMENSION;
+			p = new Object;
+			//Sprite de LodeRunner
+			p.spritesheet = imgSpriteSheet;
+			p.spriteCounter = 0;
+			//Coordonnées
+			p.fltX = (CELL_WIDTH * CELL_DIMENSION) / 2;
+			p.fltY = ((CELL_HEIGHT - 3) * CELL_DIMENSION);
+			//Position de l'image dans la grillle
+			p.ligne = (CELL_WIDTH / 2);
+			p.colonne = CELL_HEIGHT - 3;
+			//Vitesse
+			p.fltVitesse = 8;
+			//State
+			p.direction = {gauche: true, droite: true, haut: true, bas: true, tomber: false};
+			p.orientation = {gauche: true, droite: false, haut: false, bas: false, tomber: false};
 
 	}
 
 	/**
 	 * Initialiser le niveau
-	 * MAP CONVERT rgb
+	 * Permet de convertir une image 28x17 en niveau en utilisant 
+	 * un code couleur des pixels et de les transformers en bloc correspondant
 	 *BRICK = RED(255, 0, 0)
 	 *COFFRE = JAUNE(225, 225, 0)
      *ECHELLE = BRUN(130, 70, 25)
@@ -100,7 +98,7 @@
 		//Charger l'image du niveau
 
 		imgNiveau = new Image();
-		imgNiveau.src = 'niveauTest.png';
+		imgNiveau.src = 'images/niveauTest.png';
 		let tableauTemp = new Array();
 
 		imgNiveau.onload = function() {
@@ -221,13 +219,13 @@
 	 */
 	function initSprites() {
 		imgEchelle = new Image();
-		imgEchelle.src = 'echelle.png';
+		imgEchelle.src = 'images/echelle.png';
 		imgBrique = new Image();
-		imgBrique.src = 'brique.png';
+		imgBrique.src = 'images/brique.png';
 		imgCoffre = new Image();
-		imgCoffre.src = 'coffre.png';
+		imgCoffre.src = 'images/coffre.png';
 		imgBeton = new Image();
-		imgBeton.src = 'beton.png';
+		imgBeton.src = 'images/beton.png';
 	}
 
     // Un cycle d'animation	
@@ -271,7 +269,7 @@
 
 		//Si le joueur est entrain de tomber
 		if(p.direction.tomber) {
-			p.fltY += p.fltVitesse;
+			p.fltY += p.fltVitesse / 2;
 		}
 	}
 
@@ -303,13 +301,14 @@
 		
 		//Marche à gauche
 		if(p.orientation.gauche) {
-			objC2D.drawImage(p.sprite, p.fltX, p.fltY);
+			//objC2D.drawImage(p.sp, p.fltX, p.fltY);
+			objC2D.drawImage(p.spritesheet, p.spriteCounter * CELL_DIMENSION, 0, CELL_DIMENSION, CELL_DIMENSION, p.fltX, p.fltY, CELL_DIMENSION, CELL_DIMENSION);
 		}
 		//Marche a droite
 		if(p.orientation.droite) {
-			objC2D.translate(p.fltX + p.sprite.width, p.fltY);
+			objC2D.translate(p.fltX + CELL_DIMENSION, p.fltY);
 			objC2D.scale(-1, 1);
-			objC2D.drawImage(p.sprite, 0, 0);
+			objC2D.drawImage(p.spritesheet, p.spriteCounter * CELL_DIMENSION, 0, CELL_DIMENSION, CELL_DIMENSION, 0, 0, CELL_DIMENSION, CELL_DIMENSION);
 		}
 
 		//Barre à gauche
@@ -318,12 +317,11 @@
 		//Monte ou descends
 		if(p.orientation.haut || p.orientation.bas) {
 			//TEMP SPRITE
-			objC2D.drawImage(p.sprite, p.fltX, p.fltY);
+			objC2D.drawImage(p.spritesheet, p.spriteCounter * CELL_DIMENSION, CELL_DIMENSION, CELL_DIMENSION, CELL_DIMENSION, p.fltX, p.fltY, CELL_DIMENSION, CELL_DIMENSION);
 		}
 		//Tombe
 		if(p.orientation.tomber) {
-			//TEMP SPRITE
-			objC2D.drawImage(p.sprite, p.fltX, p.fltY);
+			objC2D.drawImage(p.spritesheet, CELL_DIMENSION * 4, CELL_DIMENSION, CELL_DIMENSION, CELL_DIMENSION, p.fltX, p.fltY, CELL_DIMENSION, CELL_DIMENSION);
 		}
 
 		//Creuse un trou
@@ -436,6 +434,7 @@
 		personnage.orientation.bas = false;
 		personnage.orientation.tomber = false;
 		personnage["orientation"][strOrientation] = true;
+		personnage.spriteCounter = 0;
 	}
 
 	/**
@@ -460,6 +459,7 @@
 			//Regarder si le bloc au dessous du joueur est le vide
 			if(tabBlocs[Math.floor(c.ligne + 1)][c.colonne].strNom == 'VIDE') {
 					binTomber = true;
+					changeOrientation(p, "tomber");
 			}
 		}
 
@@ -475,7 +475,7 @@
 				];
 				for(let i = 0; i < tabBlocsGauche.length; i++) {
 					//Regarde si les blocs à gauche sont solides
-					if(!tabBlocsGauche[i].isSolid)
+					if(!tabBlocsGauche[i].isSolid) 
 						binGauche = true;
 				}
 			}
@@ -549,8 +549,13 @@
 		//Bouger droite	
 		if(event.keyCode == 39) {
 			if(p.direction.droite) {
-				if(p.orientation.droite)
+				if(p.orientation.droite) {
 					p.fltX += p.fltVitesse;
+					if(p.spriteCounter == 4)
+						p.spriteCounter = 0;
+					else
+						p.spriteCounter++;
+				}
 				else
 					changeOrientation(p, "droite");
 			}
@@ -558,8 +563,13 @@
 		//Bouger gauche
 		if(event.keyCode == 37) {
 			if(p.direction.gauche) {
-				if(p.orientation.gauche && p.fltX >= 0)
+				if(p.orientation.gauche && p.fltX >= 0) {
 					p.fltX -= p.fltVitesse;
+					if(p.spriteCounter == 4)
+						p.spriteCounter = 0;
+					else
+						p.spriteCounter++;
+				}
 				else
 					changeOrientation(p, "gauche");
 			}
@@ -567,8 +577,13 @@
 		//Monter
 		if(event.keyCode == 38) {
 			if(p.direction.haut) {
-				if(p.orientation.haut)
+				if(p.orientation.haut) {
 					p.fltY -= p.fltVitesse;
+					if(p.spriteCounter == 3)
+						p.spriteCounter = 0;
+					else
+						p.spriteCounter++;
+				}
 				else
 					changeOrientation(p, "haut");
 			}
@@ -576,8 +591,13 @@
 		//Descendre
 		if(event.keyCode == 40) {
 			if(p.direction.bas) {
-				if(p.orientation.bas)
+				if(p.orientation.bas) {
 					p.fltY += p.fltVitesse;
+					if(p.spriteCounter == 3)
+						p.spriteCounter = 0;
+					else
+						p.spriteCounter++;
+				}
 				else
 					changeOrientation(p, "bas");
 			}
