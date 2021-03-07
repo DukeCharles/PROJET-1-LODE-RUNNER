@@ -5,21 +5,220 @@
 
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <title>Lode Runner par Charles Morin et Andrew Aboujaoudé</title>
-  <link rel="stylesheet" type="text/css" href="" />
+  <link href='https://fonts.googleapis.com/css?family=Audiowide' rel='stylesheet'>
+
+  <!-- Librarie js pour la création du niveau -->
+  <script src="creation-niveau.js"></script>
+
+  <!-- Librarie js pour le GUI -->
+  <script src="lib-gui.js"></script>
+
+  <!-- Librarie js pour le gameplay -->
+  <script src="librairie-jeu.js"></script>
+
   <!-- Code JavaScript local -->
-  <script type="text/javascript"> 
+  <script type="text/javascript">
+	//Elements servant à la création du canvas et du cycle d'animation.
 	let objCanvas = null;
 	let objC2D = null;
 	let objCycleAnimation = null;
-        
-    function initAnimation() {
+
+	//Constante
+	const CELL_HEIGHT = 17;
+	const CELL_WIDTH = 28;
+	const CELL_DIMENSION = 32;
+
+	//Ensembles des images du niveau
+	let imgNiveau = null;
+	let imgEchelle = null;
+	let imgBarre = null;
+	let imgBrique = null;
+	let imgBeton = null;
+	let imgCoffre = null;
+
+	//Personnages
+	let objLodeRunner = null; //LodeRunner
+
+	//Interface d'affichage des points, du temps, du niveau et des vies.
+	let objGUI = null; 
+
+	//Tableau des blocs du niveau
+	let tabBlocs = new Array();
+
+	//DEBUG mode
+	let binDebug = false;
+
+/**********************************************************
+ * Ensemble des fonctions d'initialisons des objets utilisés
+ * dans l'animation
+***********************************************************/
+
+	//Fonction principale
+	function initAnimation() {
         objCanvas = document.getElementById('monCanvas');
 		objCanvas.focus();
         objC2D = objCanvas.getContext('2d');
+		initSprites();
+		initNiveau();
+		initGUI();
+		initLodeRunner();
 	    dessiner(); // Dessiner une première fois
         animer();  // animer
     }
 
+	function initGUI() {
+		objGUI = new Object;
+		objGUI.intScore = 0;
+		objGUI.objDate = new Date();
+		objGUI.intTime = 0;
+		objGUI.intNiveau = 1;
+		objGUI.intVies = 5;
+	}
+
+	function initLodeRunner() {
+		//Sprites
+		//Marche
+		let imgSpriteSheet = new Image();
+		imgSpriteSheet.src = 'ressources/images/lodeRunner_spritesheet.png'
+
+			objLodeRunner = new Object;
+			//Sprite de LodeRunner
+			objLodeRunner.spritesheet = imgSpriteSheet;
+			objLodeRunner.spriteCounter = 0;
+			//Coordonnées
+			objLodeRunner.fltX = (CELL_WIDTH * CELL_DIMENSION) / 2;
+			objLodeRunner.fltY = ((CELL_HEIGHT - 3) * CELL_DIMENSION);
+			//Position de l'image dans la grillle
+			objLodeRunner.ligne = (CELL_WIDTH / 2);
+			objLodeRunner.colonne = CELL_HEIGHT - 3;
+			//Vitesse
+			objLodeRunner.fltVitesse = 8;
+			//État
+			objLodeRunner.actionPossible = { //Direction
+				gauche: true,
+				droite: true,
+				haut: true,
+				bas: true,
+				tomber: false, //Est-ce que c'est une action? C'est une action mais pas un choix?
+				barre: false,
+				creuser: false,
+				mourrir: false //Est-ce que c'est une action? C'est une action mais pas un choix?
+			};
+			objLodeRunner.etatActuelle = { //Orientation
+				gauche: true,
+				droite: false,
+				haut: false,
+				bas: false,
+				tomber: false,
+				barre: false,
+				creuser: false,
+				mourrir: false
+			};
+
+	}
+
+	/**
+	 * Initialiser le niveau
+	 * Permet de convertir une image 28x17 en niveau en utilisant 
+	 * un code couleur des pixels et de les transformers en bloc correspondant
+	 ***********************************
+	 * NOM_BLOC : (ID) : COULEUR(R,G,B)
+	 *ECHELLE : (0)   : BRUN(130, 70, 25)
+	 *BRICK   : (1)   : RED(255, 0, 0)
+	 *COFFRE  : (2)   : JAUNE(225, 225, 0)
+	 *BETON   : (3)   : BLUE(0, 0, 255)
+	 *BARRE   : (4)   : VERT(0,255,0
+	 ****************************************
+	 */
+	function initNiveau() {
+		objC2D.save();
+
+		//Charger l'image du niveau
+		imgNiveau = new Image();
+		imgNiveau.src = 'ressources/images/niveauTest.png';
+		let tableauTemp = new Array();
+
+		imgNiveau.onload = function() {
+			//Dessiner l'image sur le canvas
+			objC2D.drawImage(imgNiveau, 0, 0);
+
+			//Convertir l'image en un tableau de pixels
+			const objPixels = objC2D.getImageData(0, 0, CELL_WIDTH, CELL_HEIGHT);
+
+			//Lire les pixels
+			let cell_id = 0;
+			for(let p = 0; p < objPixels.data.length; p += 4) {
+						
+				const RED = objPixels.data[p];
+				const GREEN = objPixels.data[p + 1];
+				const BLUE = objPixels.data[p + 2];
+
+				//console.log("RGB("+RED+", "+GREEN+", "+BLUE+")");
+				//Si le pixel est Brun(130, 70, 25) alors la case est une échelle
+				if((RED >= 125 && RED <= 135) && (GREEN >= 65 && GREEN <= 75) && (BLUE >= 20 && BLUE <= 30))
+					tableauTemp[cell_id] = creerBloc(0);
+				//Si le pixel est Rouge(255, 0, 0) alors la case est une brique
+				else if(RED >= 254 && GREEN <= 5 && BLUE <= 5)
+					tableauTemp[cell_id]  = creerBloc(1);
+				//Si le pixel est Jaune(225, 225, 0) alors la case est un coffre
+				else if((RED >= 220 && RED <= 230) && (GREEN >= 220 && GREEN <= 230) && BLUE <= 5)
+					tableauTemp[cell_id]  = creerBloc(2);
+				//Si le pixel est Bleu(0, 0, 255) alors la case est une brique indestructible
+				else if(RED <= 5 && GREEN <= 5 && BLUE >= 254)
+					tableauTemp[cell_id]  = creerBloc(3);
+				//Si le pixel est Vert(0, 255, 0)
+				else if(RED <= 5 && GREEN >= 254 && BLUE <= 5)
+					tableauTemp[cell_id]  = creerBloc(4);
+				//Sinon la case est vide
+				else 
+					tableauTemp[cell_id]  = creerBloc(-1);
+				cell_id++;
+			}
+
+			console.log("Tableau remplit -> Size: "+tableauTemp.length+" [32x32] Blocs");
+			//console.log("Size: "+tableauTemp.length);
+
+			//Séparer le tableau en un tableau a 2 dimensions
+			let ligne = 0;
+			while(tableauTemp.length) {
+				tabBlocs[ligne] = tableauTemp.splice(0, 28);
+				ligne++;
+			}
+			//Données coordonnées
+			//j * 32, i * 32
+			for(let i = 0; i < tabBlocs.length; i++) {
+				for(let j = 0; j < tabBlocs[i].length; j++) {
+					tabBlocs[i][j].x = j * CELL_DIMENSION;
+					tabBlocs[i][j].x2 = tabBlocs[i][j].x + CELL_DIMENSION;
+					tabBlocs[i][j].y = i * CELL_DIMENSION;
+					tabBlocs[i][j].y2 = tabBlocs[i][j].y + CELL_DIMENSION;
+				}
+			}
+			console.log("Tableau Séparé:");
+			console.log("Ancien Tableau: "+tableauTemp.length);
+			console.log("Nouveau Tableau: "+tabBlocs.length);
+			//console.log(tabNiveau[1][2]);
+			effacerDessin();
+		}
+	}
+
+     //Fonction qui charge toutes les images nécèssaires au jeu
+	function initSprites() {
+		imgEchelle = new Image();
+		imgEchelle.src = 'ressources/images/echelle.png';
+		imgBrique = new Image();
+		imgBrique.src = 'ressources/images/brique.png';
+		imgCoffre = new Image();
+		imgCoffre.src = 'ressources/images/coffre.png';
+		imgBeton = new Image();
+		imgBeton.src = 'ressources/images/beton.png';
+		imgBarre = new Image();
+		imgBarre.src = 'ressources/images/barre.png'
+	}
+
+/**********************************************************
+ * Fonctions du cycle d'animation
+***********************************************************/
     // Un cycle d'animation	
     function animer() {
         // Requête pour le prochain cycle
@@ -43,27 +242,197 @@
 		objC2D.clearRect(0,0, objCanvas.width, objCanvas.height); 
 	}
 	
-	// Pour mettre à jour l'animation
+/**********************************************************
+ * Ensemble des fonctions pour mettre à jour l'animation
+***********************************************************/
 	function mettreAjourAnimation() {
-	    if (!objVortex.binEnDisparition) {
-            mettreAJourTrajetBalle();
-	        mettreAjourAnimationBalle();
-	        mettreAJourAnimationVortex();
-	    }
-        else
-           mettreAJourDisparitionVortex();
+		//Update Gui
+		mettreAjourGUI();
+		mettreAjourLodeRunner();
 	}
 
-    // Pour dessiner
+	function mettreAjourLodeRunner() {
+		//Mettre a jour Ligne et Colonne -> gridPos
+		objLodeRunner.ligne = getGridPos(objLodeRunner.fltX, objLodeRunner.fltY).LIGNE;
+		objLodeRunner.colonne = getGridPos(objLodeRunner.fltX, objLodeRunner.fltY).COLONNE;
+		objLodeRunner.fltX2 = objLodeRunner.fltX + CELL_DIMENSION;
+		objLodeRunner.fltY2 = objLodeRunner.fltY + CELL_DIMENSION;
+		objLodeRunner.actionPossible = checkActionPossible(objLodeRunner);
+
+		//Si le joueur est entrain de tomber
+		if(objLodeRunner.actionPossible.tomber) {
+			objLodeRunner.fltY += objLodeRunner.fltVitesse / 2;
+		}
+	}
+
+	function mettreAjourGUI() {
+		//update Temps
+		mettreAjourTemps();
+	}
+
+	function mettreAjourTemps() {
+    	let objDate2 =  new Date();
+        if(objGUI.objDate != null && objDate2 != null) {
+            let msDifference = objDate2.getTime() - objGUI.objDate.getTime();
+            objGUI.objDate = objDate2;
+            objGUI.intTime += msDifference;
+        }
+	}
+
+/**********************************************************
+ * Ensemble des fonctions pour dessiner le jeu
+***********************************************************/
 	function dessiner() {
+		dessinerNiveau();
+		dessinerGUI();
+		if(binDebug)
+			dessinerDebug();
+		dessinerLodeRunner();
 	}
 
+	function dessinerLodeRunner() {		
+		objC2D.save();
+		
+		//Orientation a gauche
+		if(objLodeRunner.etatActuelle.gauche) {
+			//Barre à gauche
+			if(objLodeRunner.etatActuelle.barre)
+				objC2D.drawImage(objLodeRunner.spritesheet, objLodeRunner.spriteCounter * CELL_DIMENSION,
+								 CELL_DIMENSION * 2,
+								  CELL_DIMENSION,
+								  CELL_DIMENSION,
+								  objLodeRunner.fltX,
+								  objLodeRunner.fltY,
+								  CELL_DIMENSION,
+								  CELL_DIMENSION);
+			//Sinon on marche à gauche
+			else 
+				objC2D.drawImage(objLodeRunner.spritesheet,
+				 objLodeRunner.spriteCounter * CELL_DIMENSION,
+				0,
+				CELL_DIMENSION,
+				CELL_DIMENSION,
+				objLodeRunner.fltX,
+				objLodeRunner.fltY,
+				CELL_DIMENSION,
+				CELL_DIMENSION);
+		}
+		//Orientation a droite
+		if(objLodeRunner.etatActuelle.droite) {
+			//Barre à droite
+			if(objLodeRunner.etatActuelle.barre) {
+				objC2D.translate(objLodeRunner.fltX + CELL_DIMENSION, objLodeRunner.fltY);
+				objC2D.scale(-1, 1);
+				objC2D.drawImage(objLodeRunner.spritesheet, objLodeRunner.spriteCounter * CELL_DIMENSION, CELL_DIMENSION * 2, CELL_DIMENSION, CELL_DIMENSION, 0, 0, CELL_DIMENSION, CELL_DIMENSION);
+			}
+			//Sinon on marche à droite
+			else {
+				objC2D.translate(objLodeRunner.fltX + CELL_DIMENSION, objLodeRunner.fltY);
+				objC2D.scale(-1, 1);
+				objC2D.drawImage(objLodeRunner.spritesheet, objLodeRunner.spriteCounter * CELL_DIMENSION, 0, CELL_DIMENSION, CELL_DIMENSION, 0, 0, CELL_DIMENSION, CELL_DIMENSION);
+			}
+		}
+
+		//Orientation Monte ou descends
+		if(objLodeRunner.etatActuelle.haut || objLodeRunner.etatActuelle.bas) {
+			//TEMP SPRITE
+			objC2D.drawImage(objLodeRunner.spritesheet, objLodeRunner.spriteCounter * CELL_DIMENSION, CELL_DIMENSION, CELL_DIMENSION, CELL_DIMENSION, objLodeRunner.fltX, objLodeRunner.fltY, CELL_DIMENSION, CELL_DIMENSION);
+		}
+		//Orientation Tombe
+		if(objLodeRunner.etatActuelle.tomber) {
+			objC2D.drawImage(objLodeRunner.spritesheet, CELL_DIMENSION * 4, CELL_DIMENSION, CELL_DIMENSION, CELL_DIMENSION, objLodeRunner.fltX, objLodeRunner.fltY, CELL_DIMENSION, CELL_DIMENSION);
+		}
+
+		//Creuse un trou
+		objC2D.restore();
+	}
+
+	function dessinerGUI() {
+		objC2D.save();
+		//Dessiner le background du GUI
+		objC2D.fillStyle = 'black';
+		objC2D.fillRect(0, CELL_DIMENSION*CELL_HEIGHT, objCanvas.width, objCanvas.height);
+		
+		objC2D.font = '20px Audiowide';
+		objC2D.fillStyle = 'orange';
+		//Afficher Score
+			//MAX_SCORE est 9 999 999
+		objC2D.fillText(getScoreFormat(objGUI.intScore), 50, objCanvas.height - CELL_DIMENSION);
+		//Afficher Temps
+		objC2D.fillText("Temps: "+getTimeText(objGUI.intTime), 300, objCanvas.height - CELL_DIMENSION);
+		//Afficher Niveau
+		objC2D.fillText("Niveau: "+objGUI.intNiveau, 500, objCanvas.height - CELL_DIMENSION);
+		//Afficher Vie
+		objC2D.fillText("Vies: "+objGUI.intVies, 650, objCanvas.height - CELL_DIMENSION);
+		objC2D.restore();
+	}
+
+	function dessinerNiveau() {
+		objC2D.save();
+		dessinerBackground();
+		for(let i = 0; i < tabBlocs.length; i++) {
+			for(let j = 0; j < tabBlocs[i].length; j++) {
+				objC2D.drawImage(tabBlocs[i][j].sprite, tabBlocs[i][j].x, tabBlocs[i][j].y);
+			}
+		}
+		objC2D.restore();
+	}
+
+	function dessinerBackground() {
+		objC2D.save();
+		objC2D.fillStyle = 'black';
+		objC2D.fillRect(0, 0, objCanvas.width, objCanvas.height);
+		objC2D.restore();
+	}
+
+	function dessinerDebug() {
+		objC2D.save();
+		//GRID
+		//HITBOX BRIQUE, COFFRE, ECHELLE, BARRIER, BARRE
+		for(let i = 0; i < tabBlocs.length; i++) {
+			for(let j = 0; j < tabBlocs[i].length; j++) {
+					if(tabBlocs[i][j].strNom == 'VIDE')
+						objC2D.strokeStyle = 'green';
+					else if(tabBlocs[i][j].strNom == 'COFFRE')
+						objC2D.strokeStyle = 'yellow';
+					else if(tabBlocs[i][j].strNom == 'ECHELLE')
+						objC2D.strokeStyle = 'red';
+					else if(tabBlocs[i][j].strNom == 'BRIQUE' || tabBlocs[i][j].strNom == 'BETON')
+						objC2D.strokeStyle = 'cyan';
+
+					objC2D.linewidth = 2;
+					objC2D.strokeRect(tabBlocs[i][j].x, tabBlocs[i][j].y, CELL_DIMENSION, CELL_DIMENSION);
+			}
+		}
+		
+		//INFORMATION LODE RUNNER
+		objC2D.font = '15px Arial';
+		objC2D.fillStyle = 'pink';
+		//Cordonnées en pixel
+		objC2D.fillText("X: "+objLodeRunner.fltX+" Y: "+objLodeRunner.fltY, 0, 15);
+		//Cordonnées en pixel + La grosseur de l'image
+		objC2D.fillText("X2: "+objLodeRunner.fltX2+" Y2: "+objLodeRunner.fltY2, 0, 30);
+		//Ligne et colonne
+		objC2D.fillText("L: "+objLodeRunner.ligne+" C: "+objLodeRunner.colonne, 0, 45);
+		//État actuelle
+		objC2D.fillText("État: "+getEtatActuelle(objLodeRunner), 0, 60);
+		objC2D.fillText("Action Possible: "+getActionPossible(objLodeRunner), 0, 75);
+		objC2D.fillText("SpriteCounter: "+objLodeRunner.spriteCounter, 0, 90);
+
+		//HITBOX LODE RUNNER
+		objC2D.linewidth = 50;
+		objC2D.strokeStyle = 'blue';
+		objC2D.strokeRect(objLodeRunner.fltX, objLodeRunner.fltY, CELL_DIMENSION, CELL_DIMENSION);
+
+		//HITBOX GARDE
+		objC2D.restore();
+	}
 
    </script>
 </head>
 
 <body onload="initAnimation()"> 
-	<canvas id="monCanvas" width="896" height="544" tabIndex="1" onkeydown="">
+	<canvas id="monCanvas" width="896" height="608" tabIndex="1" onkeydown="gererControle(); return false">
 		Votre navigateur ne supporte pas la balise canvas
 	</canvas>
 </body>
