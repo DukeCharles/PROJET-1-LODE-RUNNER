@@ -129,26 +129,28 @@
 				}
 				//BARRE
 				//Regarder si le joueur est sur un block complet? (Verticalement)
-				if(c.ligne - parseInt(c.ligne) == 0) {
-					//Regarder si le joueur se tient sur une barre et si le bloc a gauche du joueur est une barre
-					if(tabBlocs[c.ligne][Math.floor(c.colonne)].strNom == 'BARRE' 
-					|| tabBlocs[c.ligne][Math.ceil(c.colonne)].strNom == 'BARRE')
-						binBarre = true;
+				if(c.fltX > 0) {
+					if(c.ligne - parseInt(c.ligne) == 0) {
+						//Regarder si le joueur se tient sur une barre et si le bloc a gauche du joueur est une barre
+						if(tabBlocs[c.ligne][Math.floor(c.colonne)].strNom == 'BARRE' 
+						|| tabBlocs[c.ligne][Math.ceil(c.colonne)].strNom == 'BARRE')
+							binBarre = true;
+					}
 				}
 
 				//Creuser un trou
 				//Si le joueur est à l'état gauche ou droite
-				if((c.etatActuelle.gauche || c.etatActuelle.droite)) {
+				if((c.etatActuelle.gauche || c.etatActuelle.droite) && c.fltX > 0 && c.fltX + CELL_DIMENSION < objCanvas.width) {
 					//Si le jour n'est pas sur une barre
 					if(!c.etatActuelle.barre) {
 						//Regarder si le joueur est sur un block complet? (Verticalement)
 						if(c.ligne - parseInt(c.ligne) == 0) {
 							//Si le block dans la direction du joueur est une brique
-							let blocTest = (c.etatActuelle.gauche) ?  tabBlocs[c.ligne][Math.ceil(c.colonne)]: tabBlocs[c.ligne][Math.floor(c.colonne)];
+							let blocTest = (c.etatActuelle.gauche) ?  tabBlocs[c.ligne + 1][Math.ceil(c.colonne) - 1]: tabBlocs[c.ligne + 1][Math.floor(c.colonne) + 1];
 							//Est-ce que le block est une brique ?
 							if(blocTest.strNom == 'BRIQUE') {
 								//Prendre le bloc au dessus du bloc
-								blocTest = (c.etatActuelle.gauche) ?  tabBlocs[c.ligne - 1][Math.ceil(c.colonne)]: tabBlocs[c.ligne][Math.floor(c.colonne)];
+								blocTest = (c.etatActuelle.gauche) ?  tabBlocs[c.ligne][Math.ceil(c.colonne) - 1]: tabBlocs[c.ligne][Math.floor(c.colonne) + 1];
 								//Si le bloc au dessus est vide
 								if(blocTest.strNom == 'VIDE') {
 									binCreuser = true;
@@ -172,6 +174,11 @@
 			mourrir: false
 		};
 	}
+
+	//Creuser trou
+	function creuserTrou(binGauche, binDroite) {
+
+	}
 	
 
 	/**
@@ -181,13 +188,29 @@
 		//DEBUG #TODO supprimer à la fin
 		console.log("KeyCode -> "+event.keyCode);
 
-		//Creuser un trou
+		//Creuser un trou Droite -> X
 		if(event.keyCode == 88) {
 			//Si un trou peux être creuser
 			if(objLodeRunner.actionPossible.creuser) {
-				//Remplace
+				changerEtat(objLodeRunner, 'creuser');
+				//Si LR creuse a gauche
+				if(objLodeRunner.etatActuelle.gauche) {
+					//Remplacer la brique par du vide
+					tabBlocs[objLodeRunner.ligne + 1][Math.ceil(objLodeRunner.colonne) - 1] = creerBloc(-1);
+					//Ajouter la brique avec un temps actuelle
+					tabBlocsEffacer.push({ligne: objLodeRunner.ligne + 1, colonne: Math.ceil(objLodeRunner.colonne) - 1, timer: objGUI.intTime});
+					//Ajouter la brique avec un timer de 8 secondes dans un tableau
+				}
+				//Si LR creuse a droite
+				else if(objLodeRunner.etatActuelle.droite) {
+					tabBlocs[objLodeRunner.ligne + 1][Math.ceil(objLodeRunner.colonne) - 1] = creerBloc(-1);
+					//Ajouter la brique avec un temps actuelle
+					tabBlocsEffacer.push({ligne: objLodeRunner.ligne + 1, colonne: Math.ceil(objLodeRunner.colonne) - 1, timer: objGUI.intTime});
+				}
 			}
 		}
+
+		//Creuser un trou Gauche
 
 		//Debug F3
 		if(event.keyCode == 114) {
@@ -201,15 +224,12 @@
 		if(event.keyCode == 39) {
 			//Si actionPossible.gauche est possible
 			if(objLodeRunner.actionPossible.droite) {
-				console.log("Debug 1");
 				//Si actionPossible.Barre est possible
 				if(objLodeRunner.actionPossible.barre) {
-					 console.log("Debug 2");
 					//Si l'état gauche et barre sont true.
 					if(objLodeRunner.etatActuelle.droite && objLodeRunner.etatActuelle.barre  && objLodeRunner.fltX >= 0) {
 						//Avancez dans la direction
 						objLodeRunner.fltX += objLodeRunner.fltVitesse;
-						console.log("Debug 3");
 						//Si le spriteCounter est à la limite pour cette animation
 						if(objLodeRunner.spriteCounter == 3)
 							//Remettre le sprite Counter à 0
@@ -222,14 +242,12 @@
 					}
 					//Sinon, les mettres à jours
 					else {
-						console.log("Debug 4");
 						changerEtat(objLodeRunner, "droite");
 						changerEtat(objLodeRunner, "barre");
 					}
 				}
 				//Sinon cela veut dire que l'on marche vers la gauche
 				else {
-					console.log("Debug DROITE ONLY");
 					//Si l'état gauche est true
 					if(objLodeRunner.etatActuelle.droite 
 						&& !objLodeRunner.etatActuelle.barre
