@@ -14,6 +14,7 @@
 		let strNomBlock = "";
 		let objImage = null;
 		let isSolid = false;
+		let intValeur = 0;
 		switch(bloc_id) {
 			case 0:
 				strNomBlock = "ECHELLE";
@@ -29,6 +30,7 @@
 				strNomBlock = "COFFRE";
 				objImage = imgCoffre;
 				isSolid = false;
+				intValeur = 250;
 				break;
 			case 3:
 				strNomBlock = "BETON";
@@ -52,6 +54,8 @@
 		objBloc.sprite = objImage;
 		//SOLID BLOCK
 		objBloc.isSolid = isSolid;
+		//Valeur du bloc
+		objBloc.valeur = intValeur;
 		//Coordonnées/Hitbox
 		objBloc.x;
 		objBloc.x2;

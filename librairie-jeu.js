@@ -43,6 +43,8 @@
 	  -Monter en haut
 	  -Descendre en bas
 	  -Doit Tomber
+	  -Peux utiliser une barre
+	  -Peux creuser un trou
 	  Cette fonction met à jour la propriété "direction" du character "c"
 	 */
       function checkActionPossible(c) {
@@ -61,7 +63,8 @@
 			if(c.colonne - parseInt(c.colonne) == 0) {
 				//Regarder si le bloc au dessous du joueur est le vide 
 				//et que le bloc sur lequel est le joueur n'est pas une barre
-				if(tabBlocs[Math.floor(c.ligne + 1)][c.colonne].strNom == 'VIDE' && tabBlocs[Math.floor(c.ligne)][c.colonne].strNom != 'BARRE') {
+				if((tabBlocs[Math.floor(c.ligne + 1)][c.colonne].strNom == 'VIDE' || 
+					tabBlocs[Math.floor(c.ligne + 1)][c.colonne].strNom == 'BARRE') && tabBlocs[Math.floor(c.ligne)][c.colonne].strNom != 'BARRE') {
 						binTomber = true;
 						changerEtat(objLodeRunner, "tomber");
 				}
@@ -127,19 +130,32 @@
 				//BARRE
 				//Regarder si le joueur est sur un block complet? (Verticalement)
 				if(c.ligne - parseInt(c.ligne) == 0) {
-					/* Je crois pas qu'on n'est besoin de valider gauche droite pour barre
-					//Regarder si le joueur est sur un block complet? (Horizontalement)
-					if(c.colonne - parseInt(c.colonne) == 0) {
-						//Regarder à gauche et à droite du joueur pour une barre
-						if(tabBlocs[c.ligne][c.colonne - 1].strNom == 'BARRE' 
-						|| tabBlocs[c.ligne][c.colonne + 1].strNom == 'BARRE')
-							binBarre = true;
-					}
-					*/
 					//Regarder si le joueur se tient sur une barre et si le bloc a gauche du joueur est une barre
 					if(tabBlocs[c.ligne][Math.floor(c.colonne)].strNom == 'BARRE' 
 					|| tabBlocs[c.ligne][Math.ceil(c.colonne)].strNom == 'BARRE')
 						binBarre = true;
+				}
+
+				//Creuser un trou
+				//Si le joueur est à l'état gauche ou droite
+				if((c.etatActuelle.gauche || c.etatActuelle.droite)) {
+					//Si le jour n'est pas sur une barre
+					if(!c.etatActuelle.barre) {
+						//Regarder si le joueur est sur un block complet? (Verticalement)
+						if(c.ligne - parseInt(c.ligne) == 0) {
+							//Si le block dans la direction du joueur est une brique
+							let blocTest = (c.etatActuelle.gauche) ?  tabBlocs[c.ligne][Math.ceil(c.colonne)]: tabBlocs[c.ligne][Math.floor(c.colonne)];
+							//Est-ce que le block est une brique ?
+							if(blocTest.strNom == 'BRIQUE') {
+								//Prendre le bloc au dessus du bloc
+								blocTest = (c.etatActuelle.gauche) ?  tabBlocs[c.ligne - 1][Math.ceil(c.colonne)]: tabBlocs[c.ligne][Math.floor(c.colonne)];
+								//Si le bloc au dessus est vide
+								if(blocTest.strNom == 'VIDE') {
+									binCreuser = true;
+								}
+							}
+						}
+					}
 				}
 
 			}
@@ -163,7 +179,15 @@
 	*/
 	function gererControle() {
 		//DEBUG #TODO supprimer à la fin
-		//console.log("KeyCode -> "+event.keyCode);
+		console.log("KeyCode -> "+event.keyCode);
+
+		//Creuser un trou
+		if(event.keyCode == 88) {
+			//Si un trou peux être creuser
+			if(objLodeRunner.actionPossible.creuser) {
+				//Remplace
+			}
+		}
 
 		//Debug F3
 		if(event.keyCode == 114) {
@@ -276,6 +300,7 @@
 				}
 			}
 		}
+
 		//Monter
 		if(event.keyCode == 38) {
 			if(objLodeRunner.actionPossible.haut) {
@@ -291,6 +316,7 @@
 			}
 			//Si actionPossible = barre
 		}
+
 		//Descendre
 		if(event.keyCode == 40) {
 			if(objLodeRunner.actionPossible.bas) {
