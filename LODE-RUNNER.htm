@@ -6,8 +6,19 @@
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <title>Lode Runner par Charles Morin et Andrew Aboujaoudé</title>
   <link href='https://fonts.googleapis.com/css?family=Audiowide' rel='stylesheet'>
+
+  <!-- Librarie js pour la création du niveau -->
+  <script src="creation-niveau.js"></script>
+
+  <!-- Librarie js pour le GUI -->
+  <script src="lib-gui.js"></script>
+
+  <!-- Librarie js pour le gameplay -->
+  <script src="librairie-jeu.js"></script>
+
   <!-- Code JavaScript local -->
   <script type="text/javascript">
+	//Elements servant à la création du canvas et du cycle d'animation.
 	let objCanvas = null;
 	let objC2D = null;
 	let objCycleAnimation = null;
@@ -17,23 +28,32 @@
 	const CELL_WIDTH = 28;
 	const CELL_DIMENSION = 32;
 
-	//Images
+	//Ensembles des images du niveau
 	let imgNiveau = null;
 	let imgEchelle = null;
+	let imgBarre = null;
 	let imgBrique = null;
 	let imgBeton = null;
 	let imgCoffre = null;
 
-	//Objets
-	let p = null; //LodeRunner
-	let objGUI = null; //Interface d'affichage des points, du temps, du niveau et des vies.
+	//Personnages
+	let objLodeRunner = null; //LodeRunner
 
-	//Niveau
+	//Interface d'affichage des points, du temps, du niveau et des vies.
+	let objGUI = null; 
+
+	//Tableau des blocs du niveau
 	let tabBlocs = new Array();
 
 	//DEBUG mode
 	let binDebug = false;
 
+/**********************************************************
+ * Ensemble des fonctions d'initialisons des objets utilisés
+ * dans l'animation
+***********************************************************/
+
+	//Fonction principale
 	function initAnimation() {
         objCanvas = document.getElementById('monCanvas');
 		objCanvas.focus();
@@ -59,23 +79,41 @@
 		//Sprites
 		//Marche
 		let imgSpriteSheet = new Image();
-		imgSpriteSheet.src = 'images/lodeRunner_spritesheet.png'
+		imgSpriteSheet.src = 'ressources/images/lodeRunner_spritesheet.png'
 
-			p = new Object;
+			objLodeRunner = new Object;
 			//Sprite de LodeRunner
-			p.spritesheet = imgSpriteSheet;
-			p.spriteCounter = 0;
+			objLodeRunner.spritesheet = imgSpriteSheet;
+			objLodeRunner.spriteCounter = 0;
 			//Coordonnées
-			p.fltX = (CELL_WIDTH * CELL_DIMENSION) / 2;
-			p.fltY = ((CELL_HEIGHT - 3) * CELL_DIMENSION);
+			objLodeRunner.fltX = (CELL_WIDTH * CELL_DIMENSION) / 2;
+			objLodeRunner.fltY = ((CELL_HEIGHT - 3) * CELL_DIMENSION);
 			//Position de l'image dans la grillle
-			p.ligne = (CELL_WIDTH / 2);
-			p.colonne = CELL_HEIGHT - 3;
+			objLodeRunner.ligne = (CELL_WIDTH / 2);
+			objLodeRunner.colonne = CELL_HEIGHT - 3;
 			//Vitesse
-			p.fltVitesse = 8;
-			//State
-			p.direction = {gauche: true, droite: true, haut: true, bas: true, tomber: false};
-			p.orientation = {gauche: true, droite: false, haut: false, bas: false, tomber: false};
+			objLodeRunner.fltVitesse = 8;
+			//État
+			objLodeRunner.actionPossible = { //Direction
+				gauche: true,
+				droite: true,
+				haut: true,
+				bas: true,
+				tomber: false, //Est-ce que c'est une action? C'est une action mais pas un choix?
+				barre: false,
+				creuser: false,
+				mourrir: false //Est-ce que c'est une action? C'est une action mais pas un choix?
+			};
+			objLodeRunner.etatActuelle = { //Orientation
+				gauche: true,
+				droite: false,
+				haut: false,
+				bas: false,
+				tomber: false,
+				barre: false,
+				creuser: false,
+				mourrir: false
+			};
 
 	}
 
@@ -83,22 +121,21 @@
 	 * Initialiser le niveau
 	 * Permet de convertir une image 28x17 en niveau en utilisant 
 	 * un code couleur des pixels et de les transformers en bloc correspondant
-	 *BRICK = RED(255, 0, 0)
-	 *COFFRE = JAUNE(225, 225, 0)
-     *ECHELLE = BRUN(130, 70, 25)
-	 *BARRIER = BLUE(0, 0, 255)
-	 * -1 = vide
-	 * 0  = échelle
-	 * 1 = brique
-	 * 2 = coffre
-	 * 3 = barrier
+	 ***********************************
+	 * NOM_BLOC : (ID) : COULEUR(R,G,B)
+	 *ECHELLE : (0)   : BRUN(130, 70, 25)
+	 *BRICK   : (1)   : RED(255, 0, 0)
+	 *COFFRE  : (2)   : JAUNE(225, 225, 0)
+	 *BETON   : (3)   : BLUE(0, 0, 255)
+	 *BARRE   : (4)   : VERT(0,255,0
+	 ****************************************
 	 */
 	function initNiveau() {
 		objC2D.save();
-		//Charger l'image du niveau
 
+		//Charger l'image du niveau
 		imgNiveau = new Image();
-		imgNiveau.src = 'images/niveauTest.png';
+		imgNiveau.src = 'ressources/images/niveauTest.png';
 		let tableauTemp = new Array();
 
 		imgNiveau.onload = function() {
@@ -126,8 +163,12 @@
 				//Si le pixel est Jaune(225, 225, 0) alors la case est un coffre
 				else if((RED >= 220 && RED <= 230) && (GREEN >= 220 && GREEN <= 230) && BLUE <= 5)
 					tableauTemp[cell_id]  = creerBloc(2);
+				//Si le pixel est Bleu(0, 0, 255) alors la case est une brique indestructible
 				else if(RED <= 5 && GREEN <= 5 && BLUE >= 254)
 					tableauTemp[cell_id]  = creerBloc(3);
+				//Si le pixel est Vert(0, 255, 0)
+				else if(RED <= 5 && GREEN >= 254 && BLUE <= 5)
+					tableauTemp[cell_id]  = creerBloc(4);
 				//Sinon la case est vide
 				else 
 					tableauTemp[cell_id]  = creerBloc(-1);
@@ -161,73 +202,23 @@
 		}
 	}
 
-	/**
-	 *Function qui créer un objet bloc en fonction du bloc_id qu'il recoit en paramètres
-	 *@param {number} bloc_id L'id du bloc que la fonction doit créer
-	 *@return un objet représentant un bloc du niveau.
-	 **/
-	function creerBloc(bloc_id) {
-		let objBloc = new Object();
-
-		//sprite image
-		let strNomBlock = "";
-		let objImage = null;
-		let isSolid = false;
-		switch(bloc_id) {
-			case 0:
-				strNomBlock = "ECHELLE";
-				objImage = imgEchelle;
-				break;
-			case 1:
-				strNomBlock = "BRIQUE";
-				objImage = imgBrique;
-				isSolid = true;
-				break;
-			case 2:
-				strNomBlock = "COFFRE";
-				objImage = imgCoffre;
-				break;
-			case 3:
-				strNomBlock = "BETON";
-				objImage = imgBeton;
-				isSolid = true;
-				break;
-			default:
-				strNomBlock = "VIDE";
-				objImage = new Image();
-				isSolid = false;
-				break;
-		}
-		//Nom du block
-		objBloc.strNom = strNomBlock;
-		//sprite image
-		objBloc.sprite = objImage;
-		//SOLID BLOCK
-		objBloc.isSolid = isSolid;
-		//Coordonnées/Hitbox
-		objBloc.x;
-		objBloc.x2;
-		objBloc.y;
-		objBloc.y2;
-
-	return objBloc;
-
-	}
-
-	/**
-     *Fonction qui charge toutes les images nécèssaires au jeu
-	 */
+     //Fonction qui charge toutes les images nécèssaires au jeu
 	function initSprites() {
 		imgEchelle = new Image();
-		imgEchelle.src = 'images/echelle.png';
+		imgEchelle.src = 'ressources/images/echelle.png';
 		imgBrique = new Image();
-		imgBrique.src = 'images/brique.png';
+		imgBrique.src = 'ressources/images/brique.png';
 		imgCoffre = new Image();
-		imgCoffre.src = 'images/coffre.png';
+		imgCoffre.src = 'ressources/images/coffre.png';
 		imgBeton = new Image();
-		imgBeton.src = 'images/beton.png';
+		imgBeton.src = 'ressources/images/beton.png';
+		imgBarre = new Image();
+		imgBarre.src = 'ressources/images/barre.png'
 	}
 
+/**********************************************************
+ * Fonctions du cycle d'animation
+***********************************************************/
     // Un cycle d'animation	
     function animer() {
         // Requête pour le prochain cycle
@@ -251,7 +242,9 @@
 		objC2D.clearRect(0,0, objCanvas.width, objCanvas.height); 
 	}
 	
-	// Pour mettre à jour l'animation
+/**********************************************************
+ * Ensemble des fonctions pour mettre à jour l'animation
+***********************************************************/
 	function mettreAjourAnimation() {
 		//Update Gui
 		mettreAjourGUI();
@@ -260,16 +253,15 @@
 
 	function mettreAjourLodeRunner() {
 		//Mettre a jour Ligne et Colonne -> gridPos
-		p.gridPos = getGridPos(p.fltX, p.fltY);
-		p.ligne = getGridPos(p.fltX, p.fltY).LIGNE;
-		p.colonne = getGridPos(p.fltX, p.fltY).COLONNE;
-		p.fltX2 = p.fltX + CELL_DIMENSION;
-		p.fltY2 = p.fltY + CELL_DIMENSION;
-		p.direction = checkDirection(p);
+		objLodeRunner.ligne = getGridPos(objLodeRunner.fltX, objLodeRunner.fltY).LIGNE;
+		objLodeRunner.colonne = getGridPos(objLodeRunner.fltX, objLodeRunner.fltY).COLONNE;
+		objLodeRunner.fltX2 = objLodeRunner.fltX + CELL_DIMENSION;
+		objLodeRunner.fltY2 = objLodeRunner.fltY + CELL_DIMENSION;
+		objLodeRunner.actionPossible = checkActionPossible(objLodeRunner);
 
 		//Si le joueur est entrain de tomber
-		if(p.direction.tomber) {
-			p.fltY += p.fltVitesse / 2;
+		if(objLodeRunner.actionPossible.tomber) {
+			objLodeRunner.fltY += objLodeRunner.fltVitesse / 2;
 		}
 	}
 
@@ -287,7 +279,9 @@
         }
 	}
 
-    // Pour dessiner
+/**********************************************************
+ * Ensemble des fonctions pour dessiner le jeu
+***********************************************************/
 	function dessiner() {
 		dessinerNiveau();
 		dessinerGUI();
@@ -299,29 +293,54 @@
 	function dessinerLodeRunner() {		
 		objC2D.save();
 		
-		//Marche à gauche
-		if(p.orientation.gauche) {
-			//objC2D.drawImage(p.sp, p.fltX, p.fltY);
-			objC2D.drawImage(p.spritesheet, p.spriteCounter * CELL_DIMENSION, 0, CELL_DIMENSION, CELL_DIMENSION, p.fltX, p.fltY, CELL_DIMENSION, CELL_DIMENSION);
+		//Orientation a gauche
+		if(objLodeRunner.etatActuelle.gauche) {
+			//Barre à gauche
+			if(objLodeRunner.etatActuelle.barre)
+				objC2D.drawImage(objLodeRunner.spritesheet, objLodeRunner.spriteCounter * CELL_DIMENSION,
+								 CELL_DIMENSION * 2,
+								  CELL_DIMENSION,
+								  CELL_DIMENSION,
+								  objLodeRunner.fltX,
+								  objLodeRunner.fltY,
+								  CELL_DIMENSION,
+								  CELL_DIMENSION);
+			//Sinon on marche à gauche
+			else 
+				objC2D.drawImage(objLodeRunner.spritesheet,
+				 objLodeRunner.spriteCounter * CELL_DIMENSION,
+				0,
+				CELL_DIMENSION,
+				CELL_DIMENSION,
+				objLodeRunner.fltX,
+				objLodeRunner.fltY,
+				CELL_DIMENSION,
+				CELL_DIMENSION);
 		}
-		//Marche a droite
-		if(p.orientation.droite) {
-			objC2D.translate(p.fltX + CELL_DIMENSION, p.fltY);
-			objC2D.scale(-1, 1);
-			objC2D.drawImage(p.spritesheet, p.spriteCounter * CELL_DIMENSION, 0, CELL_DIMENSION, CELL_DIMENSION, 0, 0, CELL_DIMENSION, CELL_DIMENSION);
+		//Orientation a droite
+		if(objLodeRunner.etatActuelle.droite) {
+			//Barre à droite
+			if(objLodeRunner.etatActuelle.barre) {
+				objC2D.translate(objLodeRunner.fltX + CELL_DIMENSION, objLodeRunner.fltY);
+				objC2D.scale(-1, 1);
+				objC2D.drawImage(objLodeRunner.spritesheet, objLodeRunner.spriteCounter * CELL_DIMENSION, CELL_DIMENSION * 2, CELL_DIMENSION, CELL_DIMENSION, 0, 0, CELL_DIMENSION, CELL_DIMENSION);
+			}
+			//Sinon on marche à droite
+			else {
+				objC2D.translate(objLodeRunner.fltX + CELL_DIMENSION, objLodeRunner.fltY);
+				objC2D.scale(-1, 1);
+				objC2D.drawImage(objLodeRunner.spritesheet, objLodeRunner.spriteCounter * CELL_DIMENSION, 0, CELL_DIMENSION, CELL_DIMENSION, 0, 0, CELL_DIMENSION, CELL_DIMENSION);
+			}
 		}
 
-		//Barre à gauche
-		//Barre à droite
-
-		//Monte ou descends
-		if(p.orientation.haut || p.orientation.bas) {
+		//Orientation Monte ou descends
+		if(objLodeRunner.etatActuelle.haut || objLodeRunner.etatActuelle.bas) {
 			//TEMP SPRITE
-			objC2D.drawImage(p.spritesheet, p.spriteCounter * CELL_DIMENSION, CELL_DIMENSION, CELL_DIMENSION, CELL_DIMENSION, p.fltX, p.fltY, CELL_DIMENSION, CELL_DIMENSION);
+			objC2D.drawImage(objLodeRunner.spritesheet, objLodeRunner.spriteCounter * CELL_DIMENSION, CELL_DIMENSION, CELL_DIMENSION, CELL_DIMENSION, objLodeRunner.fltX, objLodeRunner.fltY, CELL_DIMENSION, CELL_DIMENSION);
 		}
-		//Tombe
-		if(p.orientation.tomber) {
-			objC2D.drawImage(p.spritesheet, CELL_DIMENSION * 4, CELL_DIMENSION, CELL_DIMENSION, CELL_DIMENSION, p.fltX, p.fltY, CELL_DIMENSION, CELL_DIMENSION);
+		//Orientation Tombe
+		if(objLodeRunner.etatActuelle.tomber) {
+			objC2D.drawImage(objLodeRunner.spritesheet, CELL_DIMENSION * 4, CELL_DIMENSION, CELL_DIMENSION, CELL_DIMENSION, objLodeRunner.fltX, objLodeRunner.fltY, CELL_DIMENSION, CELL_DIMENSION);
 		}
 
 		//Creuse un trou
@@ -389,271 +408,24 @@
 		//INFORMATION LODE RUNNER
 		objC2D.font = '15px Arial';
 		objC2D.fillStyle = 'pink';
-		objC2D.fillText("X: "+p.fltX+" Y: "+p.fltY, 0, 15);
-		objC2D.fillText("X2: "+p.fltX2+" Y2: "+p.fltY2, 0, 30);
-		objC2D.fillText("L: "+p.ligne+" C: "+p.colonne, 0, 45);
-		objC2D.fillText("G: "+p.direction.gauche+" D: "+p.direction.droite, 0, 60);
-		objC2D.fillText("H: "+p.direction.haut+" B: "+p.direction.bas, 0, 75);
-		objC2D.fillText("O-G: "+p.orientation.gauche+"  O-D: "+p.orientation.droite, 0, 90);
-		objC2D.fillText("O-H: "+p.orientation.haut+" O-B: "+p.orientation.bas, 0, 105);
-		objC2D.fillText("Tomber?: "+p.direction.tomber, 0, 120);
+		//Cordonnées en pixel
+		objC2D.fillText("X: "+objLodeRunner.fltX+" Y: "+objLodeRunner.fltY, 0, 15);
+		//Cordonnées en pixel + La grosseur de l'image
+		objC2D.fillText("X2: "+objLodeRunner.fltX2+" Y2: "+objLodeRunner.fltY2, 0, 30);
+		//Ligne et colonne
+		objC2D.fillText("L: "+objLodeRunner.ligne+" C: "+objLodeRunner.colonne, 0, 45);
+		//État actuelle
+		objC2D.fillText("État: "+getEtatActuelle(objLodeRunner), 0, 60);
+		objC2D.fillText("Action Possible: "+getActionPossible(objLodeRunner), 0, 75);
+		objC2D.fillText("SpriteCounter: "+objLodeRunner.spriteCounter, 0, 90);
 
 		//HITBOX LODE RUNNER
 		objC2D.linewidth = 50;
 		objC2D.strokeStyle = 'blue';
-		objC2D.strokeRect(p.fltX, p.fltY, CELL_DIMENSION, CELL_DIMENSION);
+		objC2D.strokeRect(objLodeRunner.fltX, objLodeRunner.fltY, CELL_DIMENSION, CELL_DIMENSION);
 
 		//HITBOX GARDE
 		objC2D.restore();
-	}
-
-	function getScoreFormat(intScore) {
-		let strPadding = "0000000";
-		return "Score: "+strPadding.substring(0, (strPadding.length - intScore.toString().length)) + intScore.toString();
-	}
-
-	function getTimeText(ms) {
-          let timePassed = new Date(0);
-          timePassed.setHours(0, 0, 0, ms);
-
-          const STR_MINUTES = (timePassed.getMinutes() < 10) ? "0"+timePassed.getMinutes():timePassed.getMinutes();
-          const STR_SECONDS = (timePassed.getSeconds() < 10) ? "0"+timePassed.getSeconds():timePassed.getSeconds();
-
-          return STR_MINUTES+":"+STR_SECONDS;;
-      }
-
-	//INUTILE
-	function getGridPos(fltX, fltY) {
-		return { LIGNE: fltY / CELL_DIMENSION, COLONNE: fltX / CELL_DIMENSION};
-	}
-
-	function changeOrientation(personnage, strOrientation) {
-		personnage.orientation.gauche = false;
-		personnage.orientation.droite = false;
-		personnage.orientation.haut = false;
-		personnage.orientation.bas = false;
-		personnage.orientation.tomber = false;
-		personnage["orientation"][strOrientation] = true;
-		personnage.spriteCounter = 0;
-	}
-
-	/**
-	 *Scan dans les 4 directions autours du personnage en paramètres
-	  afin de savoir s'il y a la permission de faire les actions suivantes
-	  -Marcher à gauche
-	  -Marcher à droite
-	  -Monter en haut
-	  -Descendre en bas
-	  -Doit Tomber
-	  Cette fonction met à jour la propriété "direction" du character "c"
-	 */
-	function checkDirection(c) {
-		let binGauche = false;
-		let binDroite = false;
-		let binHaut = false;
-		let binBas = false;
-		let binTomber = false;
-		//TOMBER
-		//Regarder si le joueur est sur un block complet? (Horizontalement)
-		if(c.colonne - parseInt(c.colonne) == 0) {
-			//Regarder si le bloc au dessous du joueur est le vide
-			if(tabBlocs[Math.floor(c.ligne + 1)][c.colonne].strNom == 'VIDE') {
-					binTomber = true;
-					changeOrientation(p, "tomber");
-			}
-		}
-
-		//Si le joueur n'est pas entrain de tomber
-		if(!binTomber) {
-			//GAUCHE
-			//Regarder si le personnage n'a pas franchi la limite à gauche
-			if(c.fltX > 0) {
-				//Sélectionner les blocs à gauche du personnage
-				let tabBlocsGauche = [
-					tabBlocs[Math.floor(c.ligne)][Math.ceil(c.colonne) - 1],
-					tabBlocs[Math.ceil(c.ligne)][Math.ceil(c.colonne) - 1]
-				];
-				for(let i = 0; i < tabBlocsGauche.length; i++) {
-					//Regarde si les blocs à gauche sont solides
-					if(!tabBlocsGauche[i].isSolid) 
-						binGauche = true;
-				}
-			}
-
-			//DROITE
-			//Regarder si le personnage n'a pas franchi la limite à droite
-			if(c.fltX + CELL_DIMENSION < objCanvas.width) {
-				//Sélectionner les blocs à droite du personnage
-				let tabBlocsDroite = [
-					tabBlocs[Math.floor(c.ligne)][Math.floor(c.colonne) + 1],
-					tabBlocs[Math.ceil(c.ligne)][Math.floor(c.colonne) + 1]
-				];
-				for(let i = 0; i < tabBlocsDroite.length; i++) {
-					//Regarde si les blocs à droite sont solides
-					if(!tabBlocsDroite[i].isSolid)
-						binDroite = true;
-				}
-			}
-
-			//HAUT
-			//Regarder si le personnage n'a pas franchi la limite en haut
-			if(c.fltY > 0) {
-				//Regarder si le joueur est sur un block complet? (Horizontalement)
-				if(c.colonne - parseInt(c.colonne) == 0) {
-					//Regarder si le joueur est sur une echelle?
-					if(tabBlocs[Math.ceil(c.ligne)][c.colonne].strNom == 'ECHELLE') {
-						//Regarder si le bloc au dessus du joueur est un bloc vide ou une echelle?
-						if(tabBlocs[Math.ceil(c.ligne - 1)][c.colonne].strNom == 'ECHELLE' || tabBlocs[Math.ceil(c.ligne - 1)][c.colonne].strNom == 'VIDE') {
-							binHaut = true;
-						}
-					}
-				}
-			}
-
-			//BAS
-			//Regarder si le personnage n'a pas franchi la limite en haut
-			if(c.fltY + CELL_DIMENSION < (CELL_HEIGHT * CELL_DIMENSION)) {
-				//Regarder si le joueur est sur un block complet? (Horizontalement)
-				if(c.colonne - parseInt(c.colonne) == 0) {
-					//Regarder si le joueur est sur une echelle ou dans le vide?
-					if(tabBlocs[Math.floor(c.ligne)][c.colonne].strNom == 'ECHELLE' || tabBlocs[Math.floor(c.ligne)][c.colonne].strNom == 'VIDE') {
-						//Regarder si le bloc au dessous du joueur est une echelle? Q: Est-ce qu'on permet de tomber si il y a du vide en dessous d'une echelle?
-						if(tabBlocs[Math.floor(c.ligne + 1)][c.colonne].strNom == 'ECHELLE') {
-							binBas = true;
-						}
-					}
-				}
-			}
-		}
-
-		
-
-		return {gauche: binGauche, droite: binDroite, haut: binHaut, bas: binBas, tomber: binTomber};
-	}
-
-	/**
-	 *Gère toute les entrées faites sur le clavier par le joueur
-	*/
-	function gererControle() {
-		//DEBUG #TODO supprimer à la fin
-		console.log("KeyCode -> "+event.keyCode);
-
-		//Debug F3
-		if(event.keyCode == 114) {
-			if(binDebug)
-				binDebug = false;
-			else if(!binDebug)
-				binDebug = true;
-		}
-
-		//Bouger droite	
-		if(event.keyCode == 39) {
-			if(p.direction.droite) {
-				if(p.orientation.droite) {
-					p.fltX += p.fltVitesse;
-					if(p.spriteCounter == 4)
-						p.spriteCounter = 0;
-					else
-						p.spriteCounter++;
-				}
-				else
-					changeOrientation(p, "droite");
-			}
-		}
-		//Bouger gauche
-		if(event.keyCode == 37) {
-			if(p.direction.gauche) {
-				if(p.orientation.gauche && p.fltX >= 0) {
-					p.fltX -= p.fltVitesse;
-					if(p.spriteCounter == 4)
-						p.spriteCounter = 0;
-					else
-						p.spriteCounter++;
-				}
-				else
-					changeOrientation(p, "gauche");
-			}
-		}
-		//Monter
-		if(event.keyCode == 38) {
-			if(p.direction.haut) {
-				if(p.orientation.haut) {
-					p.fltY -= p.fltVitesse;
-					if(p.spriteCounter == 3)
-						p.spriteCounter = 0;
-					else
-						p.spriteCounter++;
-				}
-				else
-					changeOrientation(p, "haut");
-			}
-		}
-		//Descendre
-		if(event.keyCode == 40) {
-			if(p.direction.bas) {
-				if(p.orientation.bas) {
-					p.fltY += p.fltVitesse;
-					if(p.spriteCounter == 3)
-						p.spriteCounter = 0;
-					else
-						p.spriteCounter++;
-				}
-				else
-					changeOrientation(p, "bas");
-			}
-		}
-	}
-
-	function gererControleOLD() {
-		console.log("KeyCode -> "+event.keyCode);
-
-		if(p.binMarcher) { 
-			
-			const LIGNE = Math.ceil(p.gridPos.LIGNE);
-			const COLONNE = Math.ceil(p.gridPos.COLONNE);
-			//Bouger droite	
-			if(event.keyCode == 39) {
-				if(!p.binGauche 
-					&& p.fltY % CELL_DIMENSION == 0
-					&& p.fltX2 <= objCanvas.width 
-					&& !tabBlocs[LIGNE][Math.floor(p.gridPos.COLONNE) + 1].isSolid) {
-					p.fltX += p.fltVitesse;
-					p.fltX2 = p.fltX + CELL_DIMENSION;
-				}
-				p.binGauche = false;
-			}
-			//Bouger gauche
-			if(event.keyCode == 37) { 
-				if(p.binGauche 
-					&& p.fltY % CELL_DIMENSION == 0 
-					&& p.fltX >= 0 
-					&& !tabBlocs[LIGNE][COLONNE - 1].isSolid) {
-					p.fltX -= p.fltVitesse;
-					p.fltX2 = p.fltX + CELL_DIMENSION;
-				}
-				p.binGauche = true;
-			}
-			//Monter
-			if(event.keyCode == 38) {
-				if(p.fltX % CELL_DIMENSION == 0 
-					&& p.fltY >= 0
-					&& tabBlocs[LIGNE][COLONNE].strNom == 'ECHELLE'
-					&& !tabBlocs[LIGNE - 1][COLONNE].isSolid) {
-					p.fltY -= p.fltVitesse;
-					p.fltY2 = p.fltY + CELL_DIMENSION;
-				}
-			}
-			//Descendre
-			if(event.keyCode == 40) {
-				if(p.fltX % CELL_DIMENSION == 0 
-					&& tabBlocs[LIGNE][COLONNE].strNom == 'ECHELLE' 
-					&& !tabBlocs[Math.floor(p.gridPos.LIGNE) + 1][COLONNE].isSolid) {
-					p.fltY += p.fltVitesse;
-					p.fltY2 = p.fltY + CELL_DIMENSION;
-				}
-			}
-			//Détruire
-		}
 	}
 
    </script>
