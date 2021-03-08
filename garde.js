@@ -56,9 +56,8 @@
 	];
 
     function getCoord() {
-		let test = tabEmplacementGardes[Math.floor(Math.random() * Math.floor(tabEmplacementGardes.length - 1))];
-        console.log("Coord: "+test.l+" "+test.c);
-        return test;
+		Math.floor(Math.random() * Math.floor(tabEmplacementGardes.length - 1));
+        return tabEmplacementGardes[Math.floor(Math.random() * Math.floor(tabEmplacementGardes.length - 1))];
     }
 
 	function recolorGardeImage(imgData, garde) {

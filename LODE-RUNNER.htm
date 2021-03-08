@@ -284,7 +284,7 @@
 				barre: false,
 				mourrir: false 
 			};
-			
+
 			//Orientation pour animation
 			objGarde.etatActuelle = {
 				gauche: true,
@@ -358,7 +358,7 @@
 		objLodeRunner.intScore += PTS_NIVEAU_REUSSI;
 		intScoreTotal += objLodeRunner.intScore;
 		//Incrémente Niveau
-		objGUI.intNiveau++;
+		intNiveau++;
 
 		initAnimation();
 	}
@@ -594,7 +594,7 @@
 		//Afficher Temps
 		objC2D.fillText("Temps: "+getTimeText(objGUI.intTime), 300, objCanvas.height - CELL_DIMENSION);
 		//Afficher Niveau
-		objC2D.fillText("Niveau: "+objGUI.intNiveau, 500, objCanvas.height - CELL_DIMENSION);
+		objC2D.fillText("Niveau: "+intNiveau, 500, objCanvas.height - CELL_DIMENSION);
 		//Afficher Vie
 		objC2D.fillText("Vies: "+intNbreVies, 650, objCanvas.height - CELL_DIMENSION);
 		objC2D.restore();
