@@ -19,6 +19,9 @@
   <!-- Librarie js pour le gameplay -->
   <script src="librairie-jeu.js"></script>
 
+  <!-- Librarie js pour le gameplay -->
+  <script src="effetsSonores.js"></script>
+
   <!-- Code JavaScript local -->
   <script type="text/javascript">
 	//Elements servant à la création du canvas et du cycle d'animation.
@@ -76,7 +79,7 @@
 
 	//Fonction principale
 	function initAnimation() {
-        objCanvas = document.getElementById('monCanvas');
+		objCanvas = document.getElementById('monCanvas');
 		objCanvas.focus();
         objC2D = objCanvas.getContext('2d');
 		initSprites();
