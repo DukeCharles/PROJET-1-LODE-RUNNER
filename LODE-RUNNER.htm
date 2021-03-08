@@ -13,6 +13,9 @@
   <!-- Librarie js pour le GUI -->
   <script src="lib-gui.js"></script>
 
+
+  <script src="garde.js"></script>
+
   <!-- Librarie js pour le gameplay -->
   <script src="librairie-jeu.js"></script>
 
@@ -27,6 +30,12 @@
 	const CELL_HEIGHT = 17;
 	const CELL_WIDTH = 28;
 	const CELL_DIMENSION = 32;
+
+	//Recompense pts
+	const PTS_COFFRE = 250;
+	const PTS_GARDE_TROU = 75;
+	const PTS_GARDE_MEURT = 75;
+	const PTS_NIVEAU_REUSSI = 1500;
 
 	//Ensembles des images du niveau
 	let imgNiveau = null;
@@ -45,9 +54,20 @@
 	//Tableau des blocs du niveau
 	let tabBlocs = new Array();
 	let tabBlocsCreuser = new Array();
+	let tabGardes = new Array();
 
 	//DEBUG mode
 	let binDebug = false;
+
+	//Score total
+	let intScoreTotal = 0;
+	let intNbreVies = 5;
+	let intNiveau = 1;
+
+	//Prochain Niveau
+	let binProchainNiveau = false;
+	let binCommencer = false;
+
 
 /**********************************************************
  * Ensemble des fonctions d'initialisons des objets utilisés
@@ -63,22 +83,20 @@
 		initNiveau();
 		initGUI();
 		initLodeRunner();
+		initGardes();
 	    dessiner(); // Dessiner une première fois
         animer();  // animer
     }
 
 	function initGUI() {
 		objGUI = new Object;
-		objGUI.intScore = 0;
 		objGUI.objDate = new Date();
 		objGUI.intTime = 0;
-		objGUI.intNiveau = 1;
-		objGUI.intVies = 5;
+		objGUI.intNiveau = intNiveau;
 	}
 
 	function initLodeRunner() {
 		//Sprites
-		//Marche
 		let imgSpriteSheet = new Image();
 		imgSpriteSheet.src = 'ressources/images/lodeRunner_spritesheet.png'
 
@@ -86,6 +104,11 @@
 			//Sprite de LodeRunner
 			objLodeRunner.spritesheet = imgSpriteSheet;
 			objLodeRunner.spriteCounter = 0;
+			objLodeRunner.estMort = false;
+			//NiveauScore
+			objLodeRunner.intScore = 0;
+			//Nombre de coffre
+			objLodeRunner.nCoffre = 0;
 			//Coordonnées
 			objLodeRunner.fltX = (CELL_WIDTH * CELL_DIMENSION) / 2;
 			objLodeRunner.fltY = ((CELL_HEIGHT - 3) * CELL_DIMENSION);
@@ -102,7 +125,8 @@
 				bas: true,
 				tomber: false, //Est-ce que c'est une action? C'est une action mais pas un choix?
 				barre: false,
-				creuser: false,
+				creuserGauche: false,
+				creuserDroite: false,
 				mourrir: false //Est-ce que c'est une action? C'est une action mais pas un choix?
 			};
 			objLodeRunner.etatActuelle = { //Orientation
@@ -136,7 +160,7 @@
 
 		//Charger l'image du niveau
 		imgNiveau = new Image();
-		imgNiveau.src = 'ressources/images/niveauTest.png';
+		imgNiveau.src = 'ressources/images/niveau1.png';
 		let tableauTemp = new Array();
 
 		imgNiveau.onload = function() {
@@ -170,8 +194,7 @@
 				//Si le pixel est Vert(0, 255, 0)
 				else if(RED <= 5 && GREEN >= 254 && BLUE <= 5)
 					tableauTemp[cell_id]  = creerBloc(4);
-				//Sinon la case est vide
-				else 
+				else
 					tableauTemp[cell_id]  = creerBloc(-1);
 				cell_id++;
 			}
@@ -217,6 +240,54 @@
 		imgBarre.src = 'ressources/images/barre.png'
 	}
 
+	function initGardes() {
+		//Création des gardes
+
+		for(let i = 0; i < 2 + intNiveau; i++) {
+			objGarde = new Object;
+			//Sprite de LodeRunner
+			objGarde.spriteSheet = recolorGardeImage();
+			objGarde.spriteCounter = 0;
+			objGarde.estMort = false;
+			//Nombre de coffre
+			objGarde.nCoffre = 0;
+			//Coordonnées
+			let objCoord = getCoord(tabGardes);
+
+			objGarde.fltX = 7 * CELL_DIMENSION;
+			objGarde.fltY = 7 * CELL_DIMENSION;
+
+			//Position de l'image dans la grillle
+			objGarde.ligne = 7;
+			objGarde.colonne = 7;
+			//Vitesse
+			objGarde.fltVitesse = 4;
+			//États
+			objGarde.actionPossible = {
+				gauche: true,
+				droite: true,
+				haut: true,
+				bas: true,
+				tomber: false, 
+				barre: false,
+				mourrir: false 
+			};
+			//Orientation pour animation
+			objGarde.etatActuelle = {
+				gauche: true,
+				droite: false,
+				haut: false,
+				bas: false,
+				tomber: false,
+				barre: false,
+				mourrir: false
+			};
+
+			tabGardes.push(objGarde);
+		}
+
+	}
+
 /**********************************************************
  * Fonctions du cycle d'animation
 ***********************************************************/
@@ -250,16 +321,82 @@
 		//Update Gui
 		mettreAjourGUI();
 		mettreAjourLodeRunner();
+		//Regarder pour les blocs creusé
+		if(tabBlocsCreuser.length > 0)
+			mettreAjourBlocCreuser();
+		if(binProchainNiveau) {
+			ajouterEchelleProchainNiveau();
+			//Si le lodeRunner attend le Haut de l'échelle -> Nouveau niveau
+			if(objLodeRunner.ligne == 0 && objLodeRunner.colonne == 21)
+				miseAjourProchainNiveau();
+		}
+	}
+
+	function reinitialiserNiveau() {
+		objGUI.intTime = 0;
+		objGUI.objDate = new Date();
+		initLodeRunner();
+		initNiveau();
+	}
+
+	function miseAjourProchainNiveau() {
+		//Ajouter points
+		binProchainNiveau = false;
+		objLodeRunner.intScore += PTS_NIVEAU_REUSSI;
+		intScoreTotal += objLodeRunner.intScore;
+		//Incrémente Niveau
+		objGUI.intNiveau++;
+
+		initAnimation();
+	}
+
+	function ajouterEchelleProchainNiveau() {
+		//Ajouter l'échelle
+		tabBlocs[2][21] = creerBloc(0);
+		tabBlocs[1][21] = creerBloc(0);
+		tabBlocs[0][21] = creerBloc(0);
+
+		tabBlocs[2][21].x = 21 * CELL_DIMENSION;
+		tabBlocs[2][21].x2 = tabBlocs[2][21].x + CELL_DIMENSION;
+		tabBlocs[2][21].y = 2 * CELL_DIMENSION;
+		tabBlocs[2][21].y2 = tabBlocs[2][21].y + CELL_DIMENSION;
+
+		tabBlocs[1][21].x = 21 * CELL_DIMENSION;
+		tabBlocs[1][21].x2 = tabBlocs[1][21].x + CELL_DIMENSION;
+		tabBlocs[1][21].y = 1 * CELL_DIMENSION;
+		tabBlocs[1][21].y2 = tabBlocs[1][21].y + CELL_DIMENSION;
+
+		tabBlocs[0][21].x = 21 * CELL_DIMENSION;
+		tabBlocs[0][21].x2 = tabBlocs[0][21].x + CELL_DIMENSION;
+		tabBlocs[0][21].y = 0 * CELL_DIMENSION;
+		tabBlocs[0][21].y2 = tabBlocs[0][21].y + CELL_DIMENSION;
 	}
 
 	function mettreAjourLodeRunner() {
 		//Mettre a jour Ligne et Colonne -> gridPos
 		objLodeRunner.ligne = getGridPos(objLodeRunner.fltX, objLodeRunner.fltY).LIGNE;
 		objLodeRunner.colonne = getGridPos(objLodeRunner.fltX, objLodeRunner.fltY).COLONNE;
-		objLodeRunner.fltX2 = objLodeRunner.fltX + CELL_DIMENSION;
-		objLodeRunner.fltY2 = objLodeRunner.fltY + CELL_DIMENSION;
 		objLodeRunner.actionPossible = checkActionPossible(objLodeRunner);
+		//Regarder pour collision avec coffre
+		checkPourCoffre(objLodeRunner);
 
+		//Si LodeRunner a ramasser les 6 coffres d'or
+		if(objLodeRunner.nCoffre >= 6)
+			binProchainNiveau = true;
+
+		//Si LodeRunner pert une vie
+			//Se fait écraser dans un trou
+			checkMortTrou(objLodeRunner);
+			//Se fait frapper par un garde
+
+		//Si LodeRunner meurt
+		if(objLodeRunner.estMort) {
+			intNbreVies--;
+			initAnimation();
+		}
+
+		//Update le score
+		objLodeRunner.intScore = objLodeRunner.nCoffre * PTS_COFFRE;
 		//Si le joueur est entrain de tomber
 		if(objLodeRunner.actionPossible.tomber) {
 			objLodeRunner.fltY += objLodeRunner.fltVitesse / 2;
@@ -280,6 +417,23 @@
         }
 	}
 
+	function mettreAjourBlocCreuser() {
+		for(let i = 0; i < tabBlocsCreuser.length; i++) {
+			if(objGUI.intTime - tabBlocsCreuser[i].temps >= 8000) {
+				//Remplacer le bloc vide par une brique à nouveau
+				let ligne = tabBlocsCreuser[i].ligne;
+				let colonne = tabBlocsCreuser[i].colonne;
+				tabBlocs[ligne][colonne] = creerBloc(1);
+				tabBlocs[ligne][colonne].x = colonne * CELL_DIMENSION;
+				tabBlocs[ligne][colonne].x2 = tabBlocs[ligne][colonne].x + CELL_DIMENSION;
+				tabBlocs[ligne][colonne].y = ligne * CELL_DIMENSION;
+				tabBlocs[ligne][colonne].y2 = tabBlocs[ligne][colonne].y + CELL_DIMENSION;
+				//Enlever le bloc de la liste de bloc creuser
+				tabBlocsCreuser.splice(i, 1);
+			}
+		}
+	}
+
 /**********************************************************
  * Ensemble des fonctions pour dessiner le jeu
 ***********************************************************/
@@ -289,13 +443,27 @@
 		if(binDebug)
 			dessinerDebug();
 		dessinerLodeRunner();
+		dessinerGardes();
+		if(binProchainNiveau)
+			dessinnerEchelleProchainNiveau();
+	}
+
+	function dessinerGardes() {
+		objC2D.save();
+		//Dessiner tous les gardes à leur positions
+		for(let i = 0; i < tabGardes.length; i++) {
+			let garde = tabGardes[i];
+			objC2D.drawImage(garde.spriteSheet, garde.fltX, garde.fltY)
+			//objC2D.putImageData(garde.spriteData, garde.fltX, garde.fltY);
+		}
+		objC2D.restore();
 	}
 
 	function dessinerLodeRunner() {		
 		objC2D.save();
 		
 		//Orientation a gauche
-		if(objLodeRunner.etatActuelle.gauche) {
+		if(objLodeRunner.etatActuelle.gauche && !objLodeRunner.etatActuelle.creuser) {
 			//Barre à gauche
 			if(objLodeRunner.etatActuelle.barre)
 				objC2D.drawImage(objLodeRunner.spritesheet, objLodeRunner.spriteCounter * CELL_DIMENSION,
@@ -319,7 +487,7 @@
 				CELL_DIMENSION);
 		}
 		//Orientation a droite
-		if(objLodeRunner.etatActuelle.droite) {
+		else if(objLodeRunner.etatActuelle.droite && !objLodeRunner.etatActuelle.creuser) {
 			//Barre à droite
 			if(objLodeRunner.etatActuelle.barre) {
 				objC2D.translate(objLodeRunner.fltX + CELL_DIMENSION, objLodeRunner.fltY);
@@ -335,16 +503,42 @@
 		}
 
 		//Orientation Monte ou descends
-		if(objLodeRunner.etatActuelle.haut || objLodeRunner.etatActuelle.bas) {
+		else if(objLodeRunner.etatActuelle.haut || objLodeRunner.etatActuelle.bas) {
 			//TEMP SPRITE
 			objC2D.drawImage(objLodeRunner.spritesheet, objLodeRunner.spriteCounter * CELL_DIMENSION, CELL_DIMENSION, CELL_DIMENSION, CELL_DIMENSION, objLodeRunner.fltX, objLodeRunner.fltY, CELL_DIMENSION, CELL_DIMENSION);
 		}
 		//Orientation Tombe
-		if(objLodeRunner.etatActuelle.tomber) {
+		else if(objLodeRunner.etatActuelle.tomber) {
 			objC2D.drawImage(objLodeRunner.spritesheet, CELL_DIMENSION * 4, CELL_DIMENSION, CELL_DIMENSION, CELL_DIMENSION, objLodeRunner.fltX, objLodeRunner.fltY, CELL_DIMENSION, CELL_DIMENSION);
 		}
 
 		//Creuse un trou
+		else if(objLodeRunner.etatActuelle.creuser) {
+			if(objLodeRunner.etatActuelle.gauche) {
+				objC2D.drawImage(objLodeRunner.spritesheet,
+				 (CELL_DIMENSION * 4) + (CELL_DIMENSION * objLodeRunner.spriteCounter),
+				 CELL_DIMENSION * 2,
+			     CELL_DIMENSION,
+				 CELL_DIMENSION,
+				 objLodeRunner.fltX,
+				 objLodeRunner.fltY,
+				 CELL_DIMENSION,
+				 CELL_DIMENSION);
+			}
+			else if(objLodeRunner.etatActuelle.droite) {
+				objC2D.translate(objLodeRunner.fltX + CELL_DIMENSION, objLodeRunner.fltY);
+				objC2D.scale(-1, 1);
+				objC2D.drawImage(objLodeRunner.spritesheet,
+				 (CELL_DIMENSION * 4) + (CELL_DIMENSION * objLodeRunner.spriteCounter),
+				 CELL_DIMENSION * 2,
+			     CELL_DIMENSION,
+				 CELL_DIMENSION,
+				 0,
+				 0,
+				 CELL_DIMENSION,
+				 CELL_DIMENSION);
+			}
+		}
 		objC2D.restore();
 	}
 
@@ -358,13 +552,13 @@
 		objC2D.fillStyle = 'orange';
 		//Afficher Score
 			//MAX_SCORE est 9 999 999
-		objC2D.fillText(getScoreFormat(objGUI.intScore), 50, objCanvas.height - CELL_DIMENSION);
+		objC2D.fillText(getScoreFormat(objLodeRunner.intScore + intScoreTotal), 50, objCanvas.height - CELL_DIMENSION);
 		//Afficher Temps
 		objC2D.fillText("Temps: "+getTimeText(objGUI.intTime), 300, objCanvas.height - CELL_DIMENSION);
 		//Afficher Niveau
 		objC2D.fillText("Niveau: "+objGUI.intNiveau, 500, objCanvas.height - CELL_DIMENSION);
 		//Afficher Vie
-		objC2D.fillText("Vies: "+objGUI.intVies, 650, objCanvas.height - CELL_DIMENSION);
+		objC2D.fillText("Vies: "+intNbreVies, 650, objCanvas.height - CELL_DIMENSION);
 		objC2D.restore();
 	}
 
@@ -412,7 +606,7 @@
 		//Cordonnées en pixel
 		objC2D.fillText("X: "+objLodeRunner.fltX+" Y: "+objLodeRunner.fltY, 0, 15);
 		//Cordonnées en pixel + La grosseur de l'image
-		objC2D.fillText("X2: "+objLodeRunner.fltX2+" Y2: "+objLodeRunner.fltY2, 0, 30);
+		//objC2D.fillText("X2: "+objLodeRunner.fltX2+" Y2: "+objLodeRunner.fltY2, 0, 30);
 		//Ligne et colonne
 		objC2D.fillText("L: "+objLodeRunner.ligne+" C: "+objLodeRunner.colonne, 0, 45);
 		//État actuelle

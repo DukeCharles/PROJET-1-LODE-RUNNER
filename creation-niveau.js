@@ -11,49 +11,50 @@
 		let objBloc = new Object();
 
 		//sprite image
-		let strNomBlock = "";
+		let strNomBloc = "";
 		let objImage = null;
-		let isSolid = false;
+		let estSolide = false;
+		let estPassable = false;
 		let intValeur = 0;
 		switch(bloc_id) {
 			case 0:
-				strNomBlock = "ECHELLE";
+				strNomBloc = "ECHELLE";
 				objImage = imgEchelle;
-				isSolid = false;
+				estSolide = false;
 				break;
 			case 1:
-				strNomBlock = "BRIQUE";
+				strNomBloc = "BRIQUE";
 				objImage = imgBrique;
-				isSolid = true;
+				estSolide = true;
 				break;
 			case 2:
-				strNomBlock = "COFFRE";
+				strNomBloc = "COFFRE";
 				objImage = imgCoffre;
-				isSolid = false;
+				estSolide = false;
 				intValeur = 250;
 				break;
 			case 3:
-				strNomBlock = "BETON";
+				strNomBloc = "BETON";
 				objImage = imgBeton;
-				isSolid = true;
+				estSolide = true;
 				break;
 			case 4:
-				strNomBlock = "BARRE";
+				strNomBloc = "BARRE";
 				objImage = imgBarre;
 				isSolid = false;
 				break;
 			default:
-				strNomBlock = "VIDE";
+				strNomBloc = "VIDE";
 				objImage = new Image();
-				isSolid = false;
+				estSolide = false;
 				break;
 		}
 		//Nom du block
-		objBloc.strNom = strNomBlock;
+		objBloc.strNom = strNomBloc;
 		//sprite image
 		objBloc.sprite = objImage;
 		//SOLID BLOCK
-		objBloc.isSolid = isSolid;
+		objBloc.estSolide = estSolide;
 		//Valeur du bloc
 		objBloc.valeur = intValeur;
 		//Coordonnées/Hitbox
