@@ -241,27 +241,39 @@
 	}
 
 	function initGardes() {
+		let imgGarde = new Image();
+		imgGarde.src = 'ressources/images/garde_spritesheet.png';
 		//Création des gardes
 
 		for(let i = 0; i < 2 + intNiveau; i++) {
 			objGarde = new Object;
+			
 			//Sprite de LodeRunner
-			objGarde.spriteSheet = recolorGardeImage();
+			objGarde.spriteSheet = imgGarde;
+			
+			//Couleur -> Il est possible que les gardes ont les mêmes couleurs
+			objGarde.RED = Math.floor(Math.random() * Math.floor(255));
+			objGarde.GREEN = Math.floor(Math.random() * Math.floor(255));
+			objGarde.BLUE = Math.floor(Math.random() * Math.floor(255));
 			objGarde.spriteCounter = 0;
 			objGarde.estMort = false;
+
 			//Nombre de coffre
 			objGarde.nCoffre = 0;
+
 			//Coordonnées
 			let objCoord = getCoord(tabGardes);
 
-			objGarde.fltX = 7 * CELL_DIMENSION;
-			objGarde.fltY = 7 * CELL_DIMENSION;
+			objGarde.fltX = objCoord.c * CELL_DIMENSION;
+			objGarde.fltY = objCoord.l * CELL_DIMENSION;
 
 			//Position de l'image dans la grillle
-			objGarde.ligne = 7;
-			objGarde.colonne = 7;
+			objGarde.ligne = objCoord.c;
+			objGarde.colonne = objCoord.l;
+
 			//Vitesse
 			objGarde.fltVitesse = 4;
+
 			//États
 			objGarde.actionPossible = {
 				gauche: true,
@@ -272,6 +284,7 @@
 				barre: false,
 				mourrir: false 
 			};
+			
 			//Orientation pour animation
 			objGarde.etatActuelle = {
 				gauche: true,
@@ -453,10 +466,34 @@
 		//Dessiner tous les gardes à leur positions
 		for(let i = 0; i < tabGardes.length; i++) {
 			let garde = tabGardes[i];
-			objC2D.drawImage(garde.spriteSheet, garde.fltX, garde.fltY)
-			//objC2D.putImageData(garde.spriteData, garde.fltX, garde.fltY);
+			//Default placeholder
+			objC2D.drawImage(garde.spriteSheet,
+						     garde.spriteCounter * CELL_DIMENSION,
+							 0,
+							 CELL_DIMENSION,
+							 CELL_DIMENSION,
+			 				 garde.fltX,
+							 garde.fltY,
+							 CELL_DIMENSION,
+							 CELL_DIMENSION);
+			/*ANIMATION*/
+			//Gauche
+			//Droite
+			//Monte/Descends
+			//Barre
+				//Gauche
+				//Droite
+			//Tombe
+			//Meurt
+
+			//Modifier la couleur des chandails des gardes
+			objC2D.putImageData(
+				recolorGardeImage(objC2D.getImageData(garde.fltX, garde.fltY, CELL_DIMENSION, CELL_DIMENSION), garde), //ImageData
+				garde.fltX,
+				garde.fltY);
 		}
 		objC2D.restore();
+
 	}
 
 	function dessinerLodeRunner() {		
@@ -466,7 +503,8 @@
 		if(objLodeRunner.etatActuelle.gauche && !objLodeRunner.etatActuelle.creuser) {
 			//Barre à gauche
 			if(objLodeRunner.etatActuelle.barre)
-				objC2D.drawImage(objLodeRunner.spritesheet, objLodeRunner.spriteCounter * CELL_DIMENSION,
+				objC2D.drawImage(objLodeRunner.spritesheet,
+								 objLodeRunner.spriteCounter * CELL_DIMENSION,
 								 CELL_DIMENSION * 2,
 								  CELL_DIMENSION,
 								  CELL_DIMENSION,
