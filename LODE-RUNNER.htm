@@ -85,6 +85,8 @@
 		objCanvas = document.getElementById('monCanvas');
 		objCanvas.focus();
         objC2D = objCanvas.getContext('2d');
+		objSons = new Object();
+       
 		initSprites();
 		initNiveau();
 		initGUI();
@@ -95,14 +97,6 @@
         animer();  // animer
     }
 
-	function initSons() {
-		objSons = new Object();
-
-        let objSon = document.createElement('audio');
-        objSon.setAttribute('src', 'tombe.mp3');
-        objSon.load();
-        objSons.tombe = objSon;
-	}
 
 	function initGUI() {
 		objGUI = new Object;

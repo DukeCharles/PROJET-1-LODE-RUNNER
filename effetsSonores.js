@@ -1,6 +1,4 @@
 function initSons() {
-    objSons = new Object();
-
     let objSon = document.createElement('audio');
     objSon.setAttribute('src', 'tombe.mp3');
     objSon.load();
@@ -45,5 +43,15 @@ function initSons() {
     objSon.setAttribute('src', 'ramasserOr.mp3');
     objSon.load();
     objSons.ramasserOr = objSon;
+
+    objSon = document.createElement('audio');
+    objSon.setAttribute('src', 'ladder.mp3');
+    objSon.load();
+    objSons.ladder = objSon;
+
+    objSon = document.createElement('audio');
+    objSon.setAttribute('src', 'marche.mp3');
+    objSon.load();
+    objSons.marche = objSon;
 
 }
