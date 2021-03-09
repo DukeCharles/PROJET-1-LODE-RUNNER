@@ -375,8 +375,12 @@
 							else
 								//Incrémenter le sprite Counter de 1
 								objLodeRunner.spriteCounter++;
-								objSons.marche.play();
-						}
+								if (objLodeRunner.spriteCounter % 2 == 0) {
+									objSons.marche2.play();
+								}
+								else{
+									objSons.marche1.play();
+								}						}
 						//Sinon le mettre à jour
 						else
 							changerEtat(objLodeRunner, "droite", true);
@@ -425,7 +429,13 @@
 							else
 								//Incrémenter le sprite Counter de 1
 								objLodeRunner.spriteCounter++;
-								objSons.marche.play();
+								if (objLodeRunner.spriteCounter % 2 == 0) {
+									objSons.marche2.play();
+								}
+								else{
+									objSons.marche1.play();
+								}
+								
 						}
 						//Sinon le mettre à jour
 						else

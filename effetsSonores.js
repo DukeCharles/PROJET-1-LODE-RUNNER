@@ -54,4 +54,14 @@ function initSons() {
     objSon.load();
     objSons.marche = objSon;
 
+    objSon = document.createElement('audio');
+    objSon.setAttribute('src', 'marche1.mp3');
+    objSon.load();
+    objSons.marche1 = objSon;
+
+    objSon = document.createElement('audio');
+    objSon.setAttribute('src', 'marche2.mp3');
+    objSon.load();
+    objSons.marche2 = objSon;
+
 }
