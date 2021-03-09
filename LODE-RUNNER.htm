@@ -19,6 +19,9 @@
   <!-- Librarie js pour le gameplay -->
   <script src="librairie-jeu.js"></script>
 
+  <!-- Librarie js pour le gameplay -->
+  <script src="effetsSonores.js"></script>
+
   <!-- Code JavaScript local -->
   <script type="text/javascript">
 	//Elements servant à la création du canvas et du cycle d'animation.
@@ -44,6 +47,9 @@
 	let imgBrique = null;
 	let imgBeton = null;
 	let imgCoffre = null;
+	
+	//Sons
+	let objSons = null;
 
 	//Personnages
 	let objLodeRunner = null; //LodeRunner
@@ -76,17 +82,27 @@
 
 	//Fonction principale
 	function initAnimation() {
-        objCanvas = document.getElementById('monCanvas');
+		objCanvas = document.getElementById('monCanvas');
 		objCanvas.focus();
         objC2D = objCanvas.getContext('2d');
 		initSprites();
 		initNiveau();
 		initGUI();
+		initSons();
 		initLodeRunner();
 		initGardes();
 	    dessiner(); // Dessiner une première fois
         animer();  // animer
     }
+
+	function initSons() {
+		objSons = new Object();
+
+        let objSon = document.createElement('audio');
+        objSon.setAttribute('src', 'tombe.mp3');
+        objSon.load();
+        objSons.tombe = objSon;
+	}
 
 	function initGUI() {
 		objGUI = new Object;
@@ -241,27 +257,39 @@
 	}
 
 	function initGardes() {
+		let imgGarde = new Image();
+		imgGarde.src = 'ressources/images/garde_spritesheet.png';
 		//Création des gardes
 
 		for(let i = 0; i < 2 + intNiveau; i++) {
 			objGarde = new Object;
+			
 			//Sprite de LodeRunner
-			objGarde.spriteSheet = recolorGardeImage();
+			objGarde.spriteSheet = imgGarde;
+			
+			//Couleur -> Il est possible que les gardes ont les mêmes couleurs
+			objGarde.RED = Math.floor(Math.random() * Math.floor(255));
+			objGarde.GREEN = Math.floor(Math.random() * Math.floor(255));
+			objGarde.BLUE = Math.floor(Math.random() * Math.floor(255));
 			objGarde.spriteCounter = 0;
 			objGarde.estMort = false;
+
 			//Nombre de coffre
 			objGarde.nCoffre = 0;
+
 			//Coordonnées
 			let objCoord = getCoord(tabGardes);
 
-			objGarde.fltX = 7 * CELL_DIMENSION;
-			objGarde.fltY = 7 * CELL_DIMENSION;
+			objGarde.fltX = objCoord.c * CELL_DIMENSION;
+			objGarde.fltY = objCoord.l * CELL_DIMENSION;
 
 			//Position de l'image dans la grillle
-			objGarde.ligne = 7;
-			objGarde.colonne = 7;
+			objGarde.ligne = objCoord.c;
+			objGarde.colonne = objCoord.l;
+
 			//Vitesse
 			objGarde.fltVitesse = 4;
+
 			//États
 			objGarde.actionPossible = {
 				gauche: true,
@@ -272,6 +300,7 @@
 				barre: false,
 				mourrir: false 
 			};
+
 			//Orientation pour animation
 			objGarde.etatActuelle = {
 				gauche: true,
@@ -345,7 +374,7 @@
 		objLodeRunner.intScore += PTS_NIVEAU_REUSSI;
 		intScoreTotal += objLodeRunner.intScore;
 		//Incrémente Niveau
-		objGUI.intNiveau++;
+		intNiveau++;
 
 		initAnimation();
 	}
@@ -400,6 +429,7 @@
 		//Si le joueur est entrain de tomber
 		if(objLodeRunner.actionPossible.tomber) {
 			objLodeRunner.fltY += objLodeRunner.fltVitesse / 2;
+			objSons.tombe.play();
 		}
 	}
 
@@ -453,10 +483,34 @@
 		//Dessiner tous les gardes à leur positions
 		for(let i = 0; i < tabGardes.length; i++) {
 			let garde = tabGardes[i];
-			objC2D.drawImage(garde.spriteSheet, garde.fltX, garde.fltY)
-			//objC2D.putImageData(garde.spriteData, garde.fltX, garde.fltY);
+			//Default placeholder
+			objC2D.drawImage(garde.spriteSheet,
+						     garde.spriteCounter * CELL_DIMENSION,
+							 0,
+							 CELL_DIMENSION,
+							 CELL_DIMENSION,
+			 				 garde.fltX,
+							 garde.fltY,
+							 CELL_DIMENSION,
+							 CELL_DIMENSION);
+			/*ANIMATION*/
+			//Gauche
+			//Droite
+			//Monte/Descends
+			//Barre
+				//Gauche
+				//Droite
+			//Tombe
+			//Meurt
+
+			//Modifier la couleur des chandails des gardes
+			objC2D.putImageData(
+				recolorGardeImage(objC2D.getImageData(garde.fltX, garde.fltY, CELL_DIMENSION, CELL_DIMENSION), garde), //ImageData
+				garde.fltX,
+				garde.fltY);
 		}
 		objC2D.restore();
+
 	}
 
 	function dessinerLodeRunner() {		
@@ -466,7 +520,8 @@
 		if(objLodeRunner.etatActuelle.gauche && !objLodeRunner.etatActuelle.creuser) {
 			//Barre à gauche
 			if(objLodeRunner.etatActuelle.barre)
-				objC2D.drawImage(objLodeRunner.spritesheet, objLodeRunner.spriteCounter * CELL_DIMENSION,
+				objC2D.drawImage(objLodeRunner.spritesheet,
+								 objLodeRunner.spriteCounter * CELL_DIMENSION,
 								 CELL_DIMENSION * 2,
 								  CELL_DIMENSION,
 								  CELL_DIMENSION,
@@ -556,7 +611,7 @@
 		//Afficher Temps
 		objC2D.fillText("Temps: "+getTimeText(objGUI.intTime), 300, objCanvas.height - CELL_DIMENSION);
 		//Afficher Niveau
-		objC2D.fillText("Niveau: "+objGUI.intNiveau, 500, objCanvas.height - CELL_DIMENSION);
+		objC2D.fillText("Niveau: "+intNiveau, 500, objCanvas.height - CELL_DIMENSION);
 		//Afficher Vie
 		objC2D.fillText("Vies: "+intNbreVies, 650, objCanvas.height - CELL_DIMENSION);
 		objC2D.restore();
