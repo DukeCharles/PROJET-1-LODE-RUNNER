@@ -55,36 +55,22 @@
 		{l: 11, c: 4},		
 	];
 
-    function getCoord(tabCoord) {
-        console.log("Coord: "+tabCoord[Math.floor(Math.random() * Math.floor(tabCoord.length - 1))]);
-        return tabCoord[Math.floor(Math.random() * Math.floor(tabCoord.length - 1))];
+    function getCoord() {
+		Math.floor(Math.random() * Math.floor(tabEmplacementGardes.length - 1));
+        return tabEmplacementGardes[Math.floor(Math.random() * Math.floor(tabEmplacementGardes.length - 1))];
     }
 
-	function recolorGardeImage() {
-		let imgGarde = new Image();
-		imgGarde.src = 'ressources/images/garde_spritesheet.png';
-        let pixels = null;
+	function recolorGardeImage(imgData, garde) {
+			for(let p = 0; p < imgData.data.length; p += 4) {
 
-		imgGarde.onload = function() {
-			objC2D.drawImage(imgGarde, 0, 0);
-
-			pixels = objC2D.getImageData(0, 0, CELL_DIMENSION * 3, CELL_DIMENSION);
-
-			const RED = Math.floor(Math.random() * Math.floor(255));
-			const GREEN = Math.floor(Math.random() * Math.floor(255));
-			const BLUE = Math.floor(Math.random() * Math.floor(255));
-
-			for(let p = 0; p < pixels.data.length; p += 4) {
-
-				if(pixels.data[p] >= 45 && pixels.data[p] <= 55
-				&& pixels.data[p+1] >= 70 && pixels.data[p+1] <= 80
-				&& pixels.data[p+2] >= 160 && pixels.data[p+2] <= 170) {
-					pixels.data[p] = RED;
-					pixels.data[p+1] = GREEN;
-					pixels.data[p+2] = BLUE;
+				if(imgData.data[p] >= 45 && imgData.data[p] <= 55
+				&& imgData.data[p+1] >= 70 && imgData.data[p+1] <= 80
+				&& imgData.data[p+2] >= 160 && imgData.data[p+2] <= 170) {
+					imgData.data[p] = garde.RED;
+					imgData.data[p+1] = garde.GREEN;
+					imgData.data[p+2] = garde.BLUE;
 				}
 			}
-		}
 
-		return objCanvas.toDataURL(pixels);
+		return imgData;
 	}
