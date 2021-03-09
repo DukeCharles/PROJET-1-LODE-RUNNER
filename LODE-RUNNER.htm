@@ -60,7 +60,7 @@
 	//Tableau des blocs du niveau
 	let tabBlocs = new Array();
 	let tabBlocsCreuser = new Array();
-	let tabGardes = new Array();
+	let tabGardes = null;
 
 	//DEBUG mode
 	let binDebug = false;
@@ -73,6 +73,9 @@
 	//Prochain Niveau
 	let binProchainNiveau = false;
 	let binCommencer = false;
+
+	//GameOver
+	let binGameOver = false;
 
 
 /**********************************************************
@@ -94,15 +97,6 @@
 	    dessiner(); // Dessiner une première fois
         animer();  // animer
     }
-
-	function initSons() {
-		objSons = new Object();
-
-        let objSon = document.createElement('audio');
-        objSon.setAttribute('src', 'tombe.mp3');
-        objSon.load();
-        objSons.tombe = objSon;
-	}
 
 	function initGUI() {
 		objGUI = new Object;
@@ -260,22 +254,28 @@
 		let imgGarde = new Image();
 		imgGarde.src = 'ressources/images/garde_spritesheet.png';
 		//Création des gardes
-
+		tabGardes = new Array();
 		for(let i = 0; i < 2 + intNiveau; i++) {
 			objGarde = new Object;
 			
 			//Sprite de LodeRunner
 			objGarde.spriteSheet = imgGarde;
+			objGarde.spriteCounter = 0;
 			
 			//Couleur -> Il est possible que les gardes ont les mêmes couleurs
 			objGarde.RED = Math.floor(Math.random() * Math.floor(255));
 			objGarde.GREEN = Math.floor(Math.random() * Math.floor(255));
 			objGarde.BLUE = Math.floor(Math.random() * Math.floor(255));
-			objGarde.spriteCounter = 0;
+
+			//Si le garde est mort
 			objGarde.estMort = false;
 
 			//Nombre de coffre
 			objGarde.nCoffre = 0;
+
+			//Propriétés du garde 
+				//Si le garde est pris dans un trou
+			objGarde.estCoincer = false;
 
 			//Coordonnées
 			let objCoord = getCoord(tabGardes);
@@ -347,17 +347,19 @@
  * Ensemble des fonctions pour mettre à jour l'animation
 ***********************************************************/
 	function mettreAjourAnimation() {
-		//Update Gui
-		mettreAjourGUI();
-		mettreAjourLodeRunner();
-		//Regarder pour les blocs creusé
-		if(tabBlocsCreuser.length > 0)
-			mettreAjourBlocCreuser();
-		if(binProchainNiveau) {
-			ajouterEchelleProchainNiveau();
-			//Si le lodeRunner attend le Haut de l'échelle -> Nouveau niveau
-			if(objLodeRunner.ligne == 0 && objLodeRunner.colonne == 21)
-				miseAjourProchainNiveau();
+		if(!binGameOver) {
+			//Update Gui
+			mettreAjourGUI();
+			mettreAjourLodeRunner();
+			//Regarder pour les blocs creusé
+			if(tabBlocsCreuser.length > 0)
+				mettreAjourBlocCreuser();
+			if(binProchainNiveau) {
+				ajouterEchelleProchainNiveau();
+				//Si le lodeRunner attend le Haut de l'échelle -> Nouveau niveau
+				if(objLodeRunner.ligne == 0 && objLodeRunner.colonne == 21)
+					miseAjourProchainNiveau();
+			}
 		}
 	}
 
@@ -417,12 +419,18 @@
 			//Se fait écraser dans un trou
 			checkMortTrou(objLodeRunner);
 			//Se fait frapper par un garde
+			if(!objLodeRunner.estMort)
+				objLodeRunner.estMort = tabGardes.some(garde => checkPourCollision(objLodeRunner, garde));
 
 		//Si LodeRunner meurt
 		if(objLodeRunner.estMort) {
 			intNbreVies--;
 			initAnimation();
 		}
+
+		//Si LodeRunner est mort 5 fois
+		if(intNbreVies <= 0)
+			binGameOver = true;
 
 		//Update le score
 		objLodeRunner.intScore = objLodeRunner.nCoffre * PTS_COFFRE;
@@ -468,14 +476,34 @@
  * Ensemble des fonctions pour dessiner le jeu
 ***********************************************************/
 	function dessiner() {
-		dessinerNiveau();
-		dessinerGUI();
-		if(binDebug)
-			dessinerDebug();
-		dessinerLodeRunner();
-		dessinerGardes();
-		if(binProchainNiveau)
-			dessinnerEchelleProchainNiveau();
+		if(!binGameOver) {
+			dessinerNiveau();
+			dessinerGUI();
+			if(binDebug)
+				dessinerDebug();
+			dessinerLodeRunner();
+			dessinerGardes();
+			if(binProchainNiveau)
+				dessinnerEchelleProchainNiveau();
+		}
+		else if (binGameOver) {
+			dessinerGameOver();
+		}
+	}
+
+	function dessinerGameOver() {
+		objC2D.save();
+		//Dessiner Fond d'écran noir
+		dessinerBackground();
+		//Dessiner Game Over
+		objC2D.font = '50px Audiowide';
+		objC2D.fillStyle = 'orange';
+		objC2D.fillText("GAME OVER", (objCanvas.width / 2) - 200, objCanvas.height / 3);
+		objC2D.font = '20px Audiowide';
+		//Dessiner Score
+		objC2D.fillText(getScoreFormat(intScoreTotal), (objCanvas.width / 2) - 125, objCanvas.height / 3 + 30);
+		//Dessiner Niveau
+		objC2D.fillText("Niveau: "+intNiveau, (objCanvas.width / 2) - 125, objCanvas.height / 3 + 60);
 	}
 
 	function dessinerGardes() {
