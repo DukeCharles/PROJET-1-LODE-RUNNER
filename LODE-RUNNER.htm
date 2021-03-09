@@ -454,6 +454,7 @@
 				tabBlocs[ligne][colonne].y2 = tabBlocs[ligne][colonne].y + CELL_DIMENSION;
 				//Enlever le bloc de la liste de bloc creuser
 				tabBlocsCreuser.splice(i, 1);
+				objSons.auto_remplit_trou.play();
 			}
 		}
 	}
