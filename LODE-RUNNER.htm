@@ -47,6 +47,9 @@
 	let imgBrique = null;
 	let imgBeton = null;
 	let imgCoffre = null;
+	
+	//Sons
+	let objSons = null;
 
 	//Personnages
 	let objLodeRunner = null; //LodeRunner
@@ -85,11 +88,21 @@
 		initSprites();
 		initNiveau();
 		initGUI();
+		initSons();
 		initLodeRunner();
 		initGardes();
 	    dessiner(); // Dessiner une première fois
         animer();  // animer
     }
+
+	function initSons() {
+		objSons = new Object();
+
+        let objSon = document.createElement('audio');
+        objSon.setAttribute('src', 'tombe.mp3');
+        objSon.load();
+        objSons.tombe = objSon;
+	}
 
 	function initGUI() {
 		objGUI = new Object;
@@ -416,6 +429,7 @@
 		//Si le joueur est entrain de tomber
 		if(objLodeRunner.actionPossible.tomber) {
 			objLodeRunner.fltY += objLodeRunner.fltVitesse / 2;
+			objSons.tombe.play();
 		}
 	}
 
