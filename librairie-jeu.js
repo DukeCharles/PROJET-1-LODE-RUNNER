@@ -19,6 +19,7 @@
 							personnage.nCoffre++;
 							//Enlever le coffre
 							tabBlocs[i][j] = creerBloc(-1);
+							objSons.ramasserOr.play();
 							tabBlocs[i][j].x = j * CELL_DIMENSION;
 							tabBlocs[i][j].x2 = tabBlocs[i][j].x + CELL_DIMENSION;
 							tabBlocs[i][j].y = i * CELL_DIMENSION;
@@ -164,6 +165,7 @@
 					//Possible d'aller a gauche
 					if(!tabBlocsGauche[0].estSolide && !tabBlocsGauche[1].estSolide) 
 							binGauche = true;
+
 				}
 
 				//DROITE
@@ -287,6 +289,7 @@
 					changerEtat(objLodeRunner, 'creuser', true);
 					//Enlever la brique et la remplacer par un bloc vide
 					tabBlocs[objLodeRunner.ligne + 1][Math.floor(objLodeRunner.colonne) + 1] = creerBloc(-1);
+					objSons.detruit.play();
 					//Ajouter la brique avec un temps actuelle
 					tabBlocsCreuser.push({ligne: objLodeRunner.ligne + 1, colonne: Math.floor(objLodeRunner.colonne) + 1, temps: objGUI.intTime});
 					if(objLodeRunner.spriteCounter == 1)
@@ -307,6 +310,7 @@
 					changerEtat(objLodeRunner, 'creuser', true);
 					//Enlever la brique et la remplacer par un bloc vide
 					tabBlocs[objLodeRunner.ligne + 1][Math.ceil(objLodeRunner.colonne) - 1] = creerBloc(-1);
+					objSons.detruit.play();
 					//Ajouter la brique avec un temps actuelle
 					tabBlocsCreuser.push({ligne: objLodeRunner.ligne + 1, colonne: Math.ceil(objLodeRunner.colonne) - 1, temps: objGUI.intTime});
 					//Déplacer lodeRunner en plein milieu de la case à droite du trou
@@ -346,6 +350,7 @@
 							else {
 								//Incrémenter le sprite Counter de 1
 								objLodeRunner.spriteCounter++;
+
 							}
 						}
 						//Sinon, les mettres à jours
@@ -370,7 +375,8 @@
 							else
 								//Incrémenter le sprite Counter de 1
 								objLodeRunner.spriteCounter++;
-						}
+								objSons.marche.play();
+							}
 						//Sinon le mettre à jour
 						else
 							changerEtat(objLodeRunner, "droite", true);
@@ -419,6 +425,8 @@
 							else
 								//Incrémenter le sprite Counter de 1
 								objLodeRunner.spriteCounter++;
+								objSons.marche.play();
+								
 						}
 						//Sinon le mettre à jour
 						else
@@ -436,6 +444,7 @@
 							objLodeRunner.spriteCounter = 0;
 						else
 							objLodeRunner.spriteCounter++;
+							objSons.ladder.play();
 					}
 					else
 						changerEtat(objLodeRunner, "haut", true);
@@ -452,6 +461,8 @@
 							objLodeRunner.spriteCounter = 0;
 						else
 							objLodeRunner.spriteCounter++;
+							objSons.ladder.play();
+
 					}
 					else
 						changerEtat(objLodeRunner, "bas", true);
