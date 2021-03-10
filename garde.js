@@ -92,9 +92,19 @@
 	 */
 	function estCoincer() {
 		//Condition nécèssaire
-
-		//Est sur un bloc qui est une brique
 		//N'a aucune action possible à vrai?
 		return false;
+	}
+
+	function MAJ_Garde() {
+		for(garde in tabGardes){
+			//Mettre a jour Ligne et Colonne -> gridPos
+			//Action possible
+			//Collision avec coffre
+			//Collision avec autre garde [OPTIONNELLE]
+			//Si le garde est mort
+			//Si le garde est coincé
+		
+		}
 	}
 

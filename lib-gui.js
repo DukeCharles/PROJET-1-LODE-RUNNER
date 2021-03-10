@@ -3,6 +3,12 @@
  * Functions utilisées pour l'affichage du GUI
 ***********************************************************/
 
+//Fonction init
+
+//Fonction MAJ
+
+//Fonction Dessiner
+
 //Formattage du score avec l'ajout des 0 au début au besoin
 function getScoreFormat(intScore) {
     let strPadding = "0000000";
