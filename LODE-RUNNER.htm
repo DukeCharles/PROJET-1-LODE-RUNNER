@@ -5,6 +5,7 @@
 
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <title>Lode Runner par Charles Morin et Andrew Aboujaoudé</title>
+  <link rel="shortcut icon" href="#">
   <link href='https://fonts.googleapis.com/css?family=Audiowide' rel='stylesheet'>
 
   <!-- Librarie js pour le personnage LodeRunner -->
@@ -63,7 +64,9 @@
 	//Tableau des blocs du niveau
 	let tabBlocs = new Array();
 	let tabBlocsCreuser = new Array();
+	//Liste des gardes
 	let tabGardes = null;
+	let tabGardesMort = new Array();
 
 	//DEBUG mode
 	let binDebug = false;
@@ -137,6 +140,8 @@
 			//Update Gui
 			mettreAjourGUI();
 			mettreAjourLodeRunner();
+			if(tabGardes.length > 0)
+				MAJ_Garde();
 			//Regarder pour les blocs creusé
 			if(tabBlocsCreuser.length > 0)
 				mettreAjourBlocCreuser();

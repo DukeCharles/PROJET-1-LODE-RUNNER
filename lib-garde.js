@@ -7,8 +7,10 @@
 		let imgGarde = new Image();
 		imgGarde.src = 'ressources/images/garde_spritesheet.png';
 		//Création des gardes
-		tabGardes = new Array();
-		for(let i = 0; i < 2 + intNiveau; i++) {
+		if(tabGardes == null)
+			tabGardes = new Array();
+
+		for(let i = tabGardes.length; i < 2 + intNiveau; i++) {
 			objGarde = new Object;
 			
 			//Sprite de LodeRunner
@@ -28,6 +30,10 @@
 
 			//Si le garde est pris dans un trou
 			objGarde.estCoincer = false;
+			objGarde.coincerTimer = null;
+
+			//Timer pour action
+			objGarde.actionTimer = null;
 
 			//Coordonnées
 			let objCoord = getCoord(tabGardes);
@@ -69,32 +75,96 @@
 
 	//MAJ
 	function MAJ_Garde() {
-		tabGardes.forEach((garde) => {
+		tabGardes.forEach((garde, index, tabGardes) => {
 			//Mettre a jour Ligne et Colonne -> gridPos
-			garde.ligne = getGridPos(objLodeRunner.fltX, objLodeRunner.fltY).LIGNE;
-			garde.colonne = getGridPos(objLodeRunner.fltX, objLodeRunner.fltY).COLONNE;
+			garde.ligne = getGridPos(garde.fltX, garde.fltY).LIGNE;
+			garde.colonne = getGridPos(garde.fltX, garde.fltY).COLONNE;
 			//Action possible
-			garde.actionPossible = checkActionPossible(garde);
+			garde.actionPossible = checkActionPossible(garde, false);
 			//Regarder pour collision avec coffre
-			checkPourCoffre(garde);
+			checkPourCoffre(garde, false);
 
 			//Collision avec autre garde [OPTIONNELLE]
 
 			//Se fait écraser dans un trou
 			checkMortTrou(garde);
 
+			//Regarde si le garde est coincer
+			garde.estCoincer = checkCoincer(garde);
+
 			//Si le garde est coincé
+			if(garde.estCoincer) {
+				//Ajouter points au lodeRunner
+				objLodeRunner.intScore += PTS_GARDE_TROU;
+				//Le bloc ou le garde se trouve est solide
+				console.log("Ligne: "+garde.ligne+" Col: "+garde.colonne);
+				if(tabBlocs[Math.ceil(garde.ligne)][Math.floor(garde.colonne)] != undefined)
+					tabBlocs[Math.ceil(garde.ligne)][Math.floor(garde.colonne)].estSolide = true;
+				//Mettre un timer de 4 secondes avant que le garde monte sur le bloc au dessus
+				if(garde.coincerTimer == null) {
+					garde.coincerTimer = objGUI.intTime;
+				}
+				if(objGUI.intTime - garde.coincerTimer >= 4000) {
+					garde.fltX += CELL_DIMENSION;
+					garde.fltY -= CELL_DIMENSION;
+				}
+				 //Si le garde à de l'argent, il met sur le bloc au dessus
+				 if(garde.nCoffre == 1) {
+					 //Enlever le coffre
+					 garde.nCoffre--;
+					 //Le mettre au dessus du garde
+					 const ligne = Math.ceil(garde.ligne) - 1;
+					 const col = Math.floor(garde.colonne);
+					 tabBlocs[ligne][col] = creerBloc(2);
+				     tabBlocs[ligne][col].x = col * CELL_DIMENSION;
+					 tabBlocs[ligne][col].x2 = tabBlocs[ligne][col].x + CELL_DIMENSION;
+					 tabBlocs[ligne][col].y = ligne * CELL_DIMENSION;
+					 tabBlocs[ligne][col].y2 = tabBlocs[ligne][col].y + CELL_DIMENSION;
+				 }
+			}
+			else
+				garde.coincerTimer = null;
+			
 
 			//Si le garde est mort
 			if(garde.estMort) {
-
+				if(garde.nCoffre == 1) {
+					//Enlever le coffre
+					garde.nCoffre--;
+					//Le mettre au dessus du garde
+					const ligne = Math.ceil(garde.ligne) - 1;
+					const col = Math.floor(garde.colonne);
+					tabBlocs[ligne][col] = creerBloc(2);
+					tabBlocs[ligne][col].x = col * CELL_DIMENSION;
+					tabBlocs[ligne][col].x2 = tabBlocs[ligne][col].x + CELL_DIMENSION;
+					tabBlocs[ligne][col].y = ligne * CELL_DIMENSION;
+					tabBlocs[ligne][col].y2 = tabBlocs[ligne][col].y + CELL_DIMENSION;
+				}
+				objLodeRunner.intScore += PTS_GARDE_MEURT;
+				tabGardes.splice(index, 1);
 			}
 
 			//Si le garde est entrain de tomber
 			if(garde.actionPossible.tomber) {
 				garde.fltY += objLodeRunner.fltVitesse;
 			}
+			else {
+				//Faire un mouvement
+				if(garde.actionTimer == null) {
+					garde.actionTimer = objGUI.intTime;
+				}
+				if(objGUI.intTime - garde.actionTimer >= 200) {
+					let action = getActionGarde(garde);
+					changerEtat(garde, action, true);
+					faireAction(garde, garde.etatActuelle);
+					garde.actionTimer = objGUI.intTime;
+				}
+			}
+
 		});
+		//Si un garde est mort
+		if(tabGardes.length < 2 + intNiveau)
+			initGardes();
 	}
 
 	//DESSINER
@@ -180,6 +250,30 @@
 		{l: 11, c: 4},		
 	];
 
+	/**Faire une action selon l'état
+	 * 
+	 * @param {garde} garde qui fait l'action
+	 * @param {*} etat les états actuelle du garde
+	 */
+	function faireAction(garde, etat) {
+		//haut
+		if(etat.haut) {
+			garde.fltY -= garde.fltVitesse;
+		}
+		//Bas
+		else if(etat.bas) {
+			garde.fltY += garde.fltVitesse;
+		}
+		//Gauche
+		else if(etat.gauche) {
+			garde.fltX -= garde.fltVitesse;
+		}
+		//Droite
+		else if(etat.droite) {
+			garde.fltX += garde.fltVitesse;
+		}
+	}
+
     function getCoord() {
 		Math.floor(Math.random() * Math.floor(tabEmplacementGardes.length - 1));
         return tabEmplacementGardes[Math.floor(Math.random() * Math.floor(tabEmplacementGardes.length - 1))];
@@ -205,6 +299,13 @@
 				//Regarde si le garde est en possèssion de coffre d'or
 				if(garde.nCoffre > 0) {
 					//Si oui recolorié les pantalons de façons doré
+					if(imgData.data[p] >= 113 && imgData.data[p] <= 123
+						&& imgData.data[p+1] >= 38 && imgData.data[p+1] <= 47
+						&& imgData.data[p+2] <= 5 ) {
+							imgData.data[p] = 255;
+							imgData.data[p+1] = 200;
+							imgData.data[p+2] = 0;
+						}
 				}
 
 			}
@@ -215,9 +316,23 @@
 	/**Regarde si le garde est coincer dans un trou
 	 * @returns si le garde est coincé ou non
 	 */
-	function estCoincer() {
-		//Condition nécèssaire
-		//N'a aucune action possible à vrai?
-		return false;
+	function checkCoincer(garde) {
+		return (Object.values(garde.actionPossible).some((action) => {return action})) ? false: true;
+	}
+
+	//Algorithme du garde
+	function getActionGarde(garde) {
+		//Regarde toute les actions possible du garde
+		let tabActions = new Array();
+		for (let [action, valeur] of Object.entries(garde.actionPossible)) {
+			if(valeur)
+				tabActions.push(action);
+		  }
+		//Choisi une de ces actions au hasard
+		let intAction = Math.floor(Math.random() * Math.floor(tabActions.length));
+		  //console.log("Action = ")
+		  //console.log(tabActions[intAction]);
+		return tabActions[intAction];
+
 	}
 

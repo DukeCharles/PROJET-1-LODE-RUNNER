@@ -241,7 +241,7 @@
 			case 4:
 				strNomBloc = "BARRE";
 				objImage = imgBarre;
-				isSolid = false;
+				estSolide = false;
 				break;
 			default:
 				strNomBloc = "VIDE";

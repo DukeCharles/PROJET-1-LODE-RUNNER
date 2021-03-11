@@ -3,7 +3,7 @@
 ***********************************************************/
 
 	//Collision avec un lingot d'or
-	function checkPourCoffre(personnage) {
+	function checkPourCoffre(personnage, binLodeRunner) {
 		//Boucle a travers tous les blocs
 		for(let i = 0; i < tabBlocs.length;i++) {
 			for(let j = 0; j < tabBlocs[i].length; j++) {
@@ -15,15 +15,21 @@
 						COFFRE.x + CELL_DIMENSION > personnage.fltX &&
 						COFFRE.y < personnage.fltY + CELL_DIMENSION &&
 						COFFRE.y + CELL_DIMENSION > personnage.fltY) {
+							if(!binLodeRunner && personnage.nCoffre == 1) {
+								
+							}
+							else {
 							//Ajouter le coffre au lodeRunner
 							personnage.nCoffre++;
 							//Enlever le coffre
 							tabBlocs[i][j] = creerBloc(-1);
-							objSons.ramasserOr.play();
+							if(binLodeRunner)
+								objSons.ramasserOr.play();
 							tabBlocs[i][j].x = j * CELL_DIMENSION;
 							tabBlocs[i][j].x2 = tabBlocs[i][j].x + CELL_DIMENSION;
 							tabBlocs[i][j].y = i * CELL_DIMENSION;
 							tabBlocs[i][j].y2 = tabBlocs[i][j].y + CELL_DIMENSION;
+							}
 						}
 				}
 			}
@@ -81,7 +87,6 @@
         personnage.etatActuelle.tomber = false;
         personnage.etatActuelle.barre = false;
         personnage.etatActuelle.creuser = false;
-        personnage.etatActuelle.mourrir = false;
 		
 		//Mettre l'état a true
 		personnage["etatActuelle"][strEtat] = binEtat;
@@ -111,7 +116,7 @@
 	  -Peux creuser un trou
 	  Cette fonction met à jour la propriété "direction" du character "c"
 	 */
-      function checkActionPossible(c) {
+      function checkActionPossible(c, binLodeRunner) {
 		let binGauche = false;
 		let binDroite = false;
 		let binHaut = false;
@@ -133,14 +138,12 @@
 			];
 
 			let tabBlocsTomber = [...new Set(tabBlocsTemp)];
-			if(binDebug)
-				console.log(tabBlocsTomber);
 			//Regarder si le joueur est sur un block complet? (Horizontalement)
 
 			if(c.colonne - parseInt(c.colonne) == 0 && !c.etatActuelle.barre) {
 				//Regarder si le bloc au dessous du joueur est le vide
 				//et que le bloc sur lequel est le joueur n'est pas une barre
-				if(tabBlocs[Math.floor(c.ligne + 1)][c.colonne].strNom == 'VIDE' 
+				if((tabBlocs[Math.floor(c.ligne + 1)][c.colonne].strNom == 'VIDE' && !tabBlocs[Math.floor(c.ligne + 1)][c.colonne].estSolide) 
 				|| tabBlocs[Math.floor(c.ligne + 1)][c.colonne].strNom == 'BARRE' 
 				|| tabBlocs[Math.floor(c.ligne + 1)][c.colonne].strNom == 'COFFRE') {
 						//Le bloc sur lequel est le joueur nest pas une barre
@@ -220,34 +223,35 @@
 							binBarre = true;
 					}
 				}
-
-				//Creuser un trou
-				//Si le joueur est à l'état gauche ou droite
-				if(c.fltX > 0 && c.fltX + CELL_DIMENSION < objCanvas.width) {
-					//Si le jour n'est pas sur une barre
-					if(!c.etatActuelle.barre) {
-						//Regarder si le joueur est sur un block complet? (Verticalement)
-						if(c.ligne - parseInt(c.ligne) == 0) {
-							let blocGauche = tabBlocs[c.ligne + 1][Math.ceil(c.colonne) - 1]
-							let blocDroite = tabBlocs[c.ligne + 1][Math.floor(c.colonne) + 1];
-							//Si le joueur peux creuser à gauche
-							//Est-ce que le block est une brique ?
-							if(blocGauche.strNom == 'BRIQUE') {
-								//Prendre le bloc au dessus du bloc
-								blocGauche = tabBlocs[c.ligne][Math.ceil(c.colonne) - 1];
-								//Si le bloc au dessus est vide
-								if(blocGauche.strNom == 'VIDE') {
-									binCreuserGauche = true;
+				if(binLodeRunner) {
+					//Creuser un trou
+					//Si le joueur est à l'état gauche ou droite
+					if(c.fltX > 0 && c.fltX + CELL_DIMENSION < objCanvas.width) {
+						//Si le jour n'est pas sur une barre
+						if(!c.etatActuelle.barre) {
+							//Regarder si le joueur est sur un block complet? (Verticalement)
+							if(c.ligne - parseInt(c.ligne) == 0) {
+								let blocGauche = tabBlocs[c.ligne + 1][Math.ceil(c.colonne) - 1]
+								let blocDroite = tabBlocs[c.ligne + 1][Math.floor(c.colonne) + 1];
+								//Si le joueur peux creuser à gauche
+								//Est-ce que le block est une brique ?
+								if(blocGauche.strNom == 'BRIQUE') {
+									//Prendre le bloc au dessus du bloc
+									blocGauche = tabBlocs[c.ligne][Math.ceil(c.colonne) - 1];
+									//Si le bloc au dessus est vide
+									if(blocGauche.strNom == 'VIDE') {
+										binCreuserGauche = true;
+									}
 								}
-							}
-							//Si le joueur peux creuser à droite
-							//Est-ce que le block est une brique ?
-							if(typeof blocDroite !== 'undefined' && blocDroite.strNom == 'BRIQUE') {
-								//Prendre le bloc au dessus du bloc
-								blocDroite = tabBlocs[c.ligne][Math.ceil(c.colonne) + 1];
-								//Si le bloc au dessus est vide
-								if(typeof blocDroite !== 'undefined' && blocDroite.strNom == 'VIDE') {
-									binCreuserDroite = true;
+								//Si le joueur peux creuser à droite
+								//Est-ce que le block est une brique ?
+								if(typeof blocDroite !== 'undefined' && blocDroite.strNom == 'BRIQUE') {
+									//Prendre le bloc au dessus du bloc
+									blocDroite = tabBlocs[c.ligne][Math.ceil(c.colonne) + 1];
+									//Si le bloc au dessus est vide
+									if(typeof blocDroite !== 'undefined' && blocDroite.strNom == 'VIDE') {
+										binCreuserDroite = true;
+									}
 								}
 							}
 						}
@@ -257,7 +261,9 @@
 			}
 		}
 
-		return {
+		
+
+		return (binLodeRunner) ? {
 			gauche: binGauche,
 			droite: binDroite,
 			haut: binHaut,
@@ -265,212 +271,13 @@
 			tomber: binTomber, //Est-ce que c'est une action? C'est une action mais pas un choix?
 			barre: binBarre,
 			creuserGauche: binCreuserGauche,
-			creuserDroite: binCreuserDroite,
-			mourrir: false
+			creuserDroite: binCreuserDroite
+		}: {
+			gauche: binGauche,
+			droite: binDroite,
+			haut: binHaut,
+			bas: binBas,
+			tomber: binTomber, //Est-ce que c'est une action? C'est une action mais pas un choix?
+			barre: binBarre
 		};
-	}
-	
-	/**
-	 *Gère toute les entrées faites sur le clavier par le joueur
-	*/
-	function gererControle() {
-		//DEBUG #TODO supprimer à la fin
-		console.log("KeyCode -> "+event.keyCode);
-		if(!binCommencer) {
-			//Commencé le niveau
-			binCommencer = true;
-		}
-		else {
-			//Creuser un trou Droite -> X
-			if(event.keyCode == 88) {
-				//Si un trou peux être creuser
-				if(objLodeRunner.actionPossible.creuserDroite) {
-					changerEtat(objLodeRunner, 'droite', true);
-					changerEtat(objLodeRunner, 'creuser', true);
-					//Enlever la brique et la remplacer par un bloc vide
-					tabBlocs[objLodeRunner.ligne + 1][Math.floor(objLodeRunner.colonne) + 1] = creerBloc(-1);
-					objSons.detruit.play();
-					//Ajouter la brique avec un temps actuelle
-					tabBlocsCreuser.push({ligne: objLodeRunner.ligne + 1, colonne: Math.floor(objLodeRunner.colonne) + 1, temps: objGUI.intTime});
-					if(objLodeRunner.spriteCounter == 1)
-						//Remettre le sprite Counter à 0
-						changerEtat(objLodeRunner, 'droite', true);
-					//Sinon
-					else
-						//Incrémenter le sprite Counter de 1
-						objLodeRunner.spriteCounter++;	
-				}
-			}
-
-			//Creuser un trou Gauche Z
-			if(event.keyCode == 90) {
-				//Si un trou peux être creuser
-				if(objLodeRunner.actionPossible.creuserGauche) {
-					changerEtat(objLodeRunner, 'gauche', true);
-					changerEtat(objLodeRunner, 'creuser', true);
-					//Enlever la brique et la remplacer par un bloc vide
-					tabBlocs[objLodeRunner.ligne + 1][Math.ceil(objLodeRunner.colonne) - 1] = creerBloc(-1);
-					objSons.detruit.play();
-					//Ajouter la brique avec un temps actuelle
-					tabBlocsCreuser.push({ligne: objLodeRunner.ligne + 1, colonne: Math.ceil(objLodeRunner.colonne) - 1, temps: objGUI.intTime});
-					//Déplacer lodeRunner en plein milieu de la case à droite du trou
-					if(objLodeRunner.spriteCounter == 1)
-						//Remettre le sprite Counter à 0
-						changerEtat(objLodeRunner, 'gauche', true);
-					//Sinon
-					else
-						//Incrémenter le sprite Counter de 1
-						objLodeRunner.spriteCounter++;	
-				}
-			}
-
-			//Debug F3
-			if(event.keyCode == 114) {
-				if(binDebug)
-					binDebug = false;
-				else if(!binDebug)
-					binDebug = true;
-			}
-
-			//Bouger droite	
-			if(event.keyCode == 39) {
-				//Si actionPossible.gauche est possible
-				if(objLodeRunner.actionPossible.droite) {
-					//Si actionPossible.Barre est possible
-					if(objLodeRunner.actionPossible.barre) {
-						//Si l'état gauche et barre sont true.
-						if(objLodeRunner.etatActuelle.droite && objLodeRunner.etatActuelle.barre  && objLodeRunner.fltX >= 0) {
-							//Avancez dans la direction
-							objLodeRunner.fltX += objLodeRunner.fltVitesse;
-							//Si le spriteCounter est à la limite pour cette animation
-							if(objLodeRunner.spriteCounter == 3)
-								//Remettre le sprite Counter à 0
-								objLodeRunner.spriteCounter = 0;
-							//Sinon
-							else {
-								//Incrémenter le sprite Counter de 1
-								objLodeRunner.spriteCounter++;
-
-							}
-						}
-						//Sinon, les mettres à jours
-						else {
-							changerEtat(objLodeRunner, "droite", true);
-							changerEtat(objLodeRunner, "barre", true);
-						}
-					}
-					//Sinon cela veut dire que l'on marche vers la gauche
-					else {
-						//Si l'état gauche est true
-						if(objLodeRunner.etatActuelle.droite 
-							&& !objLodeRunner.etatActuelle.barre
-							&& objLodeRunner.fltX <= objCanvas.width + CELL_DIMENSION) {
-							//Avancez dans la direction
-							objLodeRunner.fltX += objLodeRunner.fltVitesse;
-							//Si le spriteCounter est à la limite pour cette animation
-							if(objLodeRunner.spriteCounter == 3)
-								//Remettre le sprite Counter à 0
-								objLodeRunner.spriteCounter = 0;
-							//Sinon
-							else
-								//Incrémenter le sprite Counter de 1
-								objLodeRunner.spriteCounter++;
-								objSons.marche.play();
-							}
-						//Sinon le mettre à jour
-						else
-							changerEtat(objLodeRunner, "droite", true);
-					}
-				}
-			}
-
-			//Bouger gauche
-			if(event.keyCode == 37) {
-				//Si actionPossible.gauche est possible
-				if(objLodeRunner.actionPossible.gauche) {
-					//Si actionPossible.Barre est possible
-					if(objLodeRunner.actionPossible.barre) {
-						//Si l'état gauche et barre sont true.
-						if(objLodeRunner.etatActuelle.gauche && objLodeRunner.etatActuelle.barre  && objLodeRunner.fltX >= 0) {
-							//Avancez dans la direction
-							objLodeRunner.fltX -= objLodeRunner.fltVitesse;
-							//Si le spriteCounter est à la limite pour cette animation
-							if(objLodeRunner.spriteCounter == 3)
-								//Remettre le sprite Counter à 0
-								objLodeRunner.spriteCounter = 0;
-							//Sinon
-							else
-								//Incrémenter le sprite Counter de 1
-								objLodeRunner.spriteCounter++;
-						}
-						//Sinon, les mettres à jours
-						else {
-							changerEtat(objLodeRunner, "gauche", true);
-							changerEtat(objLodeRunner, "barre", true);
-						}
-					}
-					//Sinon cela veut dire que l'on marche vers la gauche
-					else {
-						//Si l'état gauche est true
-						if(objLodeRunner.etatActuelle.gauche
-							&& !objLodeRunner.etatActuelle.barre
-							&& objLodeRunner.fltX >= 0) {
-							//Avancez dans la direction
-							objLodeRunner.fltX -= objLodeRunner.fltVitesse;
-							//Si le spriteCounter est à la limite pour cette animation
-							if(objLodeRunner.spriteCounter == 3)
-								//Remettre le sprite Counter à 0
-								objLodeRunner.spriteCounter = 0;
-							//Sinon
-							else
-								//Incrémenter le sprite Counter de 1
-								objLodeRunner.spriteCounter++;
-								objSons.marche.play();
-								
-						}
-						//Sinon le mettre à jour
-						else
-							changerEtat(objLodeRunner, "gauche", true);
-					}
-				}
-			}
-
-			//Monter
-			if(event.keyCode == 38) {
-				if(objLodeRunner.actionPossible.haut) {
-					if(objLodeRunner.etatActuelle.haut) {
-						objLodeRunner.fltY -= objLodeRunner.fltVitesse;
-						if(objLodeRunner.spriteCounter >= 3)
-							objLodeRunner.spriteCounter = 0;
-						else
-							objLodeRunner.spriteCounter++;
-							objSons.ladder.play();
-					}
-					else
-						changerEtat(objLodeRunner, "haut", true);
-				}
-				//Si actionPossible = barre
-			}
-
-			//Descendre
-			if(event.keyCode == 40) {
-				if(objLodeRunner.actionPossible.bas) {
-					if(objLodeRunner.etatActuelle.bas) {
-						objLodeRunner.fltY += objLodeRunner.fltVitesse;
-						if(objLodeRunner.spriteCounter >= 3)
-							objLodeRunner.spriteCounter = 0;
-						else
-							objLodeRunner.spriteCounter++;
-							objSons.ladder.play();
-
-					}
-					else
-						changerEtat(objLodeRunner, "bas", true);
-				}
-				//Tomber d'une barre
-				else if(objLodeRunner.etatActuelle.barre) {
-					changerEtat(objLodeRunner, "tomber", true);
-				}
-			}
-		}
 	}

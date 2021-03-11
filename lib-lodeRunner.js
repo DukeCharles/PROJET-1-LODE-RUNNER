@@ -25,8 +25,8 @@
 			objLodeRunner.colonne = CELL_HEIGHT - 3;
 			//Vitesse
 			objLodeRunner.fltVitesse = 8;
-			//État
-			objLodeRunner.actionPossible = { //Direction
+			//Action possible
+			objLodeRunner.actionPossible = {
 				gauche: true,
 				droite: true,
 				haut: true,
@@ -35,9 +35,9 @@
 				barre: false,
 				creuserGauche: false,
 				creuserDroite: false,
-				mourrir: false //Est-ce que c'est une action? C'est une action mais pas un choix?
 			};
-			objLodeRunner.etatActuelle = { //Orientation
+			//État de l'animation
+			objLodeRunner.etatActuelle = {
 				gauche: true,
 				droite: false,
 				haut: false,
@@ -45,7 +45,6 @@
 				tomber: false,
 				barre: false,
 				creuser: false,
-				mourrir: false
 			};
 
 	}
@@ -55,9 +54,9 @@
 		//Mettre a jour Ligne et Colonne -> gridPos
 		objLodeRunner.ligne = getGridPos(objLodeRunner.fltX, objLodeRunner.fltY).LIGNE;
 		objLodeRunner.colonne = getGridPos(objLodeRunner.fltX, objLodeRunner.fltY).COLONNE;
-		objLodeRunner.actionPossible = checkActionPossible(objLodeRunner);
+		objLodeRunner.actionPossible = checkActionPossible(objLodeRunner, true);
 		//Regarder pour collision avec coffre
-		checkPourCoffre(objLodeRunner);
+		checkPourCoffre(objLodeRunner, true);
 
 		//Si LodeRunner a ramasser les 6 coffres d'or
 		if(objLodeRunner.nCoffre >= 6)
@@ -72,7 +71,9 @@
 
 		//Si LodeRunner meurt
 		if(objLodeRunner.estMort) {
+			objSons.loderunnerHit.play();
 			intNbreVies--;
+			tabGardes = null;
 			initAnimation();
 		}
 
@@ -119,7 +120,7 @@
 				CELL_DIMENSION);
 		}
 		//Orientation a droite
-		else if(objLodeRunner.etatActuelle.droite && !objLodeRunner.etatActuelle.creuser) {
+		if(objLodeRunner.etatActuelle.droite && !objLodeRunner.etatActuelle.creuser) {
 			//Barre à droite
 			if(objLodeRunner.etatActuelle.barre) {
 				objC2D.translate(objLodeRunner.fltX + CELL_DIMENSION, objLodeRunner.fltY);
@@ -135,17 +136,17 @@
 		}
 
 		//Orientation Monte ou descends
-		else if(objLodeRunner.etatActuelle.haut || objLodeRunner.etatActuelle.bas) {
+		if(objLodeRunner.etatActuelle.haut || objLodeRunner.etatActuelle.bas) {
 			//TEMP SPRITE
 			objC2D.drawImage(objLodeRunner.spritesheet, objLodeRunner.spriteCounter * CELL_DIMENSION, CELL_DIMENSION, CELL_DIMENSION, CELL_DIMENSION, objLodeRunner.fltX, objLodeRunner.fltY, CELL_DIMENSION, CELL_DIMENSION);
 		}
 		//Orientation Tombe
-		else if(objLodeRunner.etatActuelle.tomber) {
+		if(objLodeRunner.etatActuelle.tomber) {
 			objC2D.drawImage(objLodeRunner.spritesheet, CELL_DIMENSION * 4, CELL_DIMENSION, CELL_DIMENSION, CELL_DIMENSION, objLodeRunner.fltX, objLodeRunner.fltY, CELL_DIMENSION, CELL_DIMENSION);
 		}
 
 		//Creuse un trou
-		else if(objLodeRunner.etatActuelle.creuser) {
+		if(objLodeRunner.etatActuelle.creuser) {
 			if(objLodeRunner.etatActuelle.gauche) {
 				objC2D.drawImage(objLodeRunner.spritesheet,
 				 (CELL_DIMENSION * 4) + (CELL_DIMENSION * objLodeRunner.spriteCounter),
@@ -172,4 +173,209 @@
 			}
 		}
 		objC2D.restore();
+	}
+
+	/**
+	 *Gère toute les entrées faites sur le clavier par le joueur
+	*/
+	function gererControle() {
+		//DEBUG #TODO supprimer à la fin
+		console.log("KeyCode -> "+event.keyCode);
+		if(!binCommencer) {
+			//Commencé le niveau
+			binCommencer = true;
+		}
+		else {
+			//Creuser un trou Droite -> X
+			if(event.keyCode == 88) {
+				//Si un trou peux être creuser
+				if(objLodeRunner.actionPossible.creuserDroite) {
+					changerEtat(objLodeRunner, 'droite', true);
+					changerEtat(objLodeRunner, 'creuser', true);
+					//Enlever la brique et la remplacer par un bloc vide
+					tabBlocs[objLodeRunner.ligne + 1][Math.floor(objLodeRunner.colonne) + 1] = creerBloc(-1);
+					objSons.detruit.play();
+					//Ajouter la brique avec un temps actuelle
+					tabBlocsCreuser.push({ligne: objLodeRunner.ligne + 1, colonne: Math.floor(objLodeRunner.colonne) + 1, temps: objGUI.intTime});
+					if(objLodeRunner.spriteCounter == 1)
+						//Remettre le sprite Counter à 0
+						changerEtat(objLodeRunner, 'droite', true);
+					//Sinon
+					else
+						//Incrémenter le sprite Counter de 1
+						objLodeRunner.spriteCounter++;	
+				}
+			}
+
+			//Creuser un trou Gauche Z
+			if(event.keyCode == 90) {
+				//Si un trou peux être creuser
+				if(objLodeRunner.actionPossible.creuserGauche) {
+					changerEtat(objLodeRunner, 'gauche', true);
+					changerEtat(objLodeRunner, 'creuser', true);
+					//Enlever la brique et la remplacer par un bloc vide
+					tabBlocs[objLodeRunner.ligne + 1][Math.ceil(objLodeRunner.colonne) - 1] = creerBloc(-1);
+					objSons.detruit.play();
+					//Ajouter la brique avec un temps actuelle
+					tabBlocsCreuser.push({ligne: objLodeRunner.ligne + 1, colonne: Math.ceil(objLodeRunner.colonne) - 1, temps: objGUI.intTime});
+					//Déplacer lodeRunner en plein milieu de la case à droite du trou
+					if(objLodeRunner.spriteCounter == 1)
+						//Remettre le sprite Counter à 0
+						changerEtat(objLodeRunner, 'gauche', true);
+					//Sinon
+					else
+						//Incrémenter le sprite Counter de 1
+						objLodeRunner.spriteCounter++;	
+				}
+			}
+
+			//Debug F3
+			if(event.keyCode == 114) {
+				if(binDebug)
+					binDebug = false;
+				else if(!binDebug)
+					binDebug = true;
+			}
+
+			//Bouger droite	
+			if(event.keyCode == 39) {
+				//Si actionPossible.gauche est possible
+				if(objLodeRunner.actionPossible.droite) {
+					//Si actionPossible.Barre est possible
+					if(objLodeRunner.actionPossible.barre) {
+						//Si l'état gauche et barre sont true.
+						if(objLodeRunner.etatActuelle.droite && objLodeRunner.etatActuelle.barre  && objLodeRunner.fltX >= 0) {
+							//Avancez dans la direction
+							objLodeRunner.fltX += objLodeRunner.fltVitesse;
+							//Si le spriteCounter est à la limite pour cette animation
+							if(objLodeRunner.spriteCounter == 3)
+								//Remettre le sprite Counter à 0
+								objLodeRunner.spriteCounter = 0;
+							//Sinon
+							else {
+								//Incrémenter le sprite Counter de 1
+								objLodeRunner.spriteCounter++;
+
+							}
+						}
+						//Sinon, les mettres à jours
+						else {
+							changerEtat(objLodeRunner, "droite", true);
+							changerEtat(objLodeRunner, "barre", true);
+						}
+					}
+					//Sinon cela veut dire que l'on marche vers la gauche
+					else {
+						//Si l'état gauche est true
+						if(objLodeRunner.etatActuelle.droite 
+							&& !objLodeRunner.etatActuelle.barre
+							&& objLodeRunner.fltX <= objCanvas.width + CELL_DIMENSION) {
+							//Avancez dans la direction
+							objLodeRunner.fltX += objLodeRunner.fltVitesse;
+							//Si le spriteCounter est à la limite pour cette animation
+							if(objLodeRunner.spriteCounter == 3)
+								//Remettre le sprite Counter à 0
+								objLodeRunner.spriteCounter = 0;
+							//Sinon
+							else
+								//Incrémenter le sprite Counter de 1
+								objLodeRunner.spriteCounter++;
+								objSons.marche.play();
+							}
+						//Sinon le mettre à jour
+						else
+							changerEtat(objLodeRunner, "droite", true);
+					}
+				}
+			}
+
+			//Bouger gauche
+			if(event.keyCode == 37) {
+				//Si actionPossible.gauche est possible
+				if(objLodeRunner.actionPossible.gauche) {
+					//Si actionPossible.Barre est possible
+					if(objLodeRunner.actionPossible.barre) {
+						//Si l'état gauche et barre sont true.
+						if(objLodeRunner.etatActuelle.gauche && objLodeRunner.etatActuelle.barre  && objLodeRunner.fltX >= 0) {
+							//Avancez dans la direction
+							objLodeRunner.fltX -= objLodeRunner.fltVitesse;
+							//Si le spriteCounter est à la limite pour cette animation
+							if(objLodeRunner.spriteCounter == 3)
+								//Remettre le sprite Counter à 0
+								objLodeRunner.spriteCounter = 0;
+							//Sinon
+							else
+								//Incrémenter le sprite Counter de 1
+								objLodeRunner.spriteCounter++;
+						}
+						//Sinon, les mettres à jours
+						else {
+							changerEtat(objLodeRunner, "gauche", true);
+							changerEtat(objLodeRunner, "barre", true);
+						}
+					}
+					//Sinon cela veut dire que l'on marche vers la gauche
+					else {
+						//Si l'état gauche est true
+						if(objLodeRunner.etatActuelle.gauche
+							&& !objLodeRunner.etatActuelle.barre
+							&& objLodeRunner.fltX >= 0) {
+							//Avancez dans la direction
+							objLodeRunner.fltX -= objLodeRunner.fltVitesse;
+							//Si le spriteCounter est à la limite pour cette animation
+							if(objLodeRunner.spriteCounter == 3)
+								//Remettre le sprite Counter à 0
+								objLodeRunner.spriteCounter = 0;
+							//Sinon
+							else
+								//Incrémenter le sprite Counter de 1
+								objLodeRunner.spriteCounter++;
+								objSons.marche.play();
+								
+						}
+						//Sinon le mettre à jour
+						else
+							changerEtat(objLodeRunner, "gauche", true);
+					}
+				}
+			}
+
+			//Monter
+			if(event.keyCode == 38) {
+				if(objLodeRunner.actionPossible.haut) {
+					if(objLodeRunner.etatActuelle.haut) {
+						objLodeRunner.fltY -= objLodeRunner.fltVitesse;
+						if(objLodeRunner.spriteCounter >= 3)
+							objLodeRunner.spriteCounter = 0;
+						else
+							objLodeRunner.spriteCounter++;
+							objSons.ladder.play();
+					}
+					else
+						changerEtat(objLodeRunner, "haut", true);
+				}
+				//Si actionPossible = barre
+			}
+
+			//Descendre
+			if(event.keyCode == 40) {
+				if(objLodeRunner.actionPossible.bas) {
+					if(objLodeRunner.etatActuelle.bas) {
+						objLodeRunner.fltY += objLodeRunner.fltVitesse;
+						if(objLodeRunner.spriteCounter >= 3)
+							objLodeRunner.spriteCounter = 0;
+						else
+							objLodeRunner.spriteCounter++;
+							objSons.ladder.play();
+
+					}
+					else
+						changerEtat(objLodeRunner, "bas", true);
+				}
+				//Tomber d'une barre
+				else if(objLodeRunner.etatActuelle.barre) {
+					changerEtat(objLodeRunner, "tomber", true);
+				}
+			}
+		}
 	}
