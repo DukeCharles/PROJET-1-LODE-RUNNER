@@ -152,6 +152,9 @@
 					miseAjourProchainNiveau();
 			}
 		}
+		else {
+			objSons.gameover.play();
+		}
 	}
 
 /**********************************************************
@@ -165,8 +168,6 @@
 				dessinerDebug();
 			dessinerLodeRunner();
 			dessinerGardes();
-			if(binProchainNiveau)
-				dessinnerEchelleProchainNiveau();
 		}
 		else if (binGameOver) {
 			dessinerGameOver();

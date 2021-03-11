@@ -75,6 +75,7 @@
 
 	//MAJ
 	function MAJ_Garde() {
+		if(binCommencer) {
 		tabGardes.forEach((garde, index, tabGardes) => {
 			//Mettre a jour Ligne et Colonne -> gridPos
 			garde.ligne = getGridPos(garde.fltX, garde.fltY).LIGNE;
@@ -86,14 +87,13 @@
 
 			//Collision avec autre garde [OPTIONNELLE]
 
-			//Se fait écraser dans un trou
-			checkMortTrou(garde);
-
 			//Regarde si le garde est coincer
 			garde.estCoincer = checkCoincer(garde);
 
 			//Si le garde est coincé
 			if(garde.estCoincer) {
+				//Se fait écraser dans un trou
+				checkMortTrou(garde);
 				//Ajouter points au lodeRunner
 				objLodeRunner.intScore += PTS_GARDE_TROU;
 				//Le bloc ou le garde se trouve est solide
@@ -128,6 +128,8 @@
 
 			//Si le garde est mort
 			if(garde.estMort) {
+				//Jouer son
+				objSons.gardeMeurt.play();
 				if(garde.nCoffre == 1) {
 					//Enlever le coffre
 					garde.nCoffre--;
@@ -148,7 +150,7 @@
 			if(garde.actionPossible.tomber) {
 				garde.fltY += objLodeRunner.fltVitesse;
 			}
-			else {
+			else if(!garde.estCoincer) {
 				//Faire un mouvement
 				if(garde.actionTimer == null) {
 					garde.actionTimer = objGUI.intTime;
@@ -165,6 +167,7 @@
 		//Si un garde est mort
 		if(tabGardes.length < 2 + intNiveau)
 			initGardes();
+		}
 	}
 
 	//DESSINER
@@ -188,6 +191,12 @@
 				recolorGardeImage(objC2D.getImageData(garde.fltX, garde.fltY, CELL_DIMENSION, CELL_DIMENSION), garde), //ImageData
 				garde.fltX,
 				garde.fltY);
+			//Dessiner si il est coincé
+			if(binDebug) {
+				objC2D.font = '10px Arial';
+			objC2D.fillStyle = 'green';
+			objC2D.fillText("X: "+garde.fltX+" Y: "+garde.fltY, garde.fltX, garde.fltY);
+			}
 		});
 		objC2D.restore();
 	}
