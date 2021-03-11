@@ -1,0 +1,5 @@
+Pour roulez la page.
+
+1.Ouvrir le fichier dans visual studio code
+2.Ensuite faire un clic droit sur LODE-RUNNER.HTM
+3.cliquer sur l'option -> "Open with Live Server"

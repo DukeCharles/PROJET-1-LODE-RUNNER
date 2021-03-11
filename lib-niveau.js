@@ -188,6 +188,8 @@
 		binProchainNiveau = false;
 		objLodeRunner.intScore += PTS_NIVEAU_REUSSI;
 		intScoreTotal += objLodeRunner.intScore;
+		//Jouer la chanson
+		objSons.nextLevel.play();
 		//Incrémente Niveau
 		intNiveau++;
 
